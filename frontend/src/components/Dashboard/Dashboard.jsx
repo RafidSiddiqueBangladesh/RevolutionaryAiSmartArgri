@@ -3,10 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import DeviceManager from './DeviceManager';
 import SensorOverview from './SensorOverview';
 import WeatherWidget from '../Weather/WeatherWidget';
-
+import AnalyticsPage from '../Analytics/AnalyticsPage';
+import Chatbot from '../Chatbot/Chatbot';
+import ChatbotButton from '../Chatbot/ChatbotButton';
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -125,6 +128,12 @@ const Dashboard = () => {
               >
                 My Devices
               </button>
+              <button 
+                className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                onClick={() => setActiveTab('analytics')}
+              >
+                Analytics
+              </button>
             </div>
           )}
 
@@ -165,13 +174,6 @@ const Dashboard = () => {
                   <WeatherWidget />
                 </div>
               )}
-              
-              {/* Sensor Data Overview for Farmers */}
-              {user?.role === 'farmer' && (
-                <div className="content-section">
-                  <SensorOverview user={user} />
-                </div>
-              )}
             </div>
           )}
 
@@ -182,8 +184,31 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'analytics' && user?.role === 'farmer' && (
+            <div className="content-sections">
+              <div className="content-section">
+                <h3 className="content-title">Farm Analytics</h3>
+                <AnalyticsPage />
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Floating Chatbot Button - Only for farmers */}
+      {user?.role === 'farmer' && (
+        <>
+          <ChatbotButton 
+            onClick={() => setIsChatbotOpen(true)}
+            hasNewMessage={false}
+          />
+          <Chatbot 
+            isOpen={isChatbotOpen}
+            onClose={() => setIsChatbotOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 };

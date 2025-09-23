@@ -5,7 +5,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const deviceRoutes = require('./routes/device');
 const weatherRoutes = require('./routes/weather');
-
+const analyticsRoutes = require('./routes/analytics');
+const voiceRoutes = require('./routes/voice');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -21,8 +22,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/voice', voiceRoutes);
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'AgriSense Backend is running!',
