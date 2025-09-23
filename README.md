@@ -2,7 +2,7 @@
 
 AgriSense is a comprehensive agricultural technology platform designed to help farmers in Bangladesh make data-driven decisions using IoT sensors, AI recommendations, and real-time monitoring.
 
-## 🚀 Features
+## Features
 
 - **Role-based Authentication**: Separate access for farmers and administrators
 - **Smart Dashboard**: Real-time monitoring of soil conditions and crop health
@@ -12,7 +12,7 @@ AgriSense is a comprehensive agricultural technology platform designed to help f
 - **Knowledge Sharing**: Farmer-to-farmer experience sharing platform
 - **Market Price Updates**: Real-time crop price information
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 AgriSense/
@@ -109,7 +109,7 @@ The application will be available at:
 - **Mobile**: 01700000000
 - **Password**: admin123
 
-*⚠️ Change this password in production!*
+*Change this password in production!*
 
 ### Farmer Registration
 Farmers can sign up by providing:
@@ -118,14 +118,14 @@ Farmers can sign up by providing:
 - Crop Name
 - District (from 64 districts of Bangladesh)
 
-## 📱 Usage
+##  Usage
 
 1. **Login/Signup**: Access the authentication page
 2. **Dashboard**: View personalized dashboard based on user role
 3. **Farmer Dashboard**: Monitor crop data, receive recommendations
 4. **Admin Dashboard**: Overview of all farmers and system-wide data
 
-## 🌟 Upcoming Features
+## Upcoming Features
 
 - IoT sensor integration (soil moisture, pH, temperature)
 - AI-powered crop recommendations
@@ -136,7 +136,7 @@ Farmers can sign up by providing:
 - Knowledge sharing platform
 - Mobile app (React Native)
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth/signup` - Farmer registration
@@ -144,7 +144,7 @@ Farmers can sign up by providing:
 - `GET /api/auth/profile` - Get user profile
 - `GET /api/auth/districts` - Get all districts
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -152,14 +152,8 @@ Farmers can sign up by providing:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License.
 
 ## 👥 Team
 
-AgriSense Team - Building the future of smart agriculture in Bangladesh
+Ginger
 
----
-
-**Made with ❤️ for farmers in Bangladesh** 🇧🇩

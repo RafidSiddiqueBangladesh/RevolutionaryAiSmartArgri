@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import DeviceManager from './DeviceManager';
+import SensorOverview from './SensorOverview';
+import WeatherWidget from '../Weather/WeatherWidget';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
 
   const handleLogout = () => {
     logout();
@@ -74,24 +78,25 @@ const Dashboard = () => {
           </div>
 
           {user?.role === 'farmer' && (
-            <div className="sidebar-section">
-              <h3 className="section-title">Farm Details</h3>
-              <div className="farm-details">
-                <div className="farm-item">
-                  <span className="farm-label">Crop Type</span>
-                  <span className="farm-value">{user?.cropName}</span>
-                </div>
-                <div className="farm-item">
-                  <span className="farm-label">District</span>
-                  <span className="farm-value">{user?.district || 'Not specified'}</span>
-                </div>
-                <div className="farm-item">
-                  <span className="farm-label">Land Size</span>
-                  <span className="farm-value">
-                    {user?.landSizeAcres ? `${user.landSizeAcres} acres` : 'Not specified'}
-                  </span>
-                </div>
-                {user?.locationAddress && (
+            <>
+              <div className="sidebar-section">
+                <h3 className="section-title">Farm Details</h3>
+                <div className="farm-details">
+                  <div className="farm-item">
+                    <span className="farm-label">Crop Type</span>
+                    <span className="farm-value">{user?.cropName}</span>
+                  </div>
+                  <div className="farm-item">
+                    <span className="farm-label">District</span>
+                    <span className="farm-value">{user?.district || 'Not specified'}</span>
+                  </div>
+                  <div className="farm-item">
+                    <span className="farm-label">Land Size</span>
+                    <span className="farm-value">
+                      {user?.landSizeAcres ? `${user.landSizeAcres} acres` : 'Not specified'}
+                    </span>
+                  </div>
+                  {user?.locationAddress && (
                   <div className="farm-item">
                     <span className="farm-label">Location</span>
                     <span className="farm-value location">{user.locationAddress}</span>
@@ -99,40 +104,84 @@ const Dashboard = () => {
                 )}
               </div>
             </div>
+            </>
           )}
         </div>
 
         {/* Main Content Area */}
         <div className="dashboard-content">
-          {/* Welcome Message */}
-          <div className="content-sections">
-            <div className="content-section">
-              <h3 className="content-title">
-                Welcome to AgriSense, {user?.fullName}!
-              </h3>
-              <div className="welcome-content">
-                <p>
-                  {user?.role === 'farmer' 
-                    ? 'Your smart farming dashboard is ready. You can view your profile information and farm details in the sidebar.'
-                    : 'Welcome to the AgriSense admin panel. You have access to manage the platform and monitor all farming activities.'
-                  }
-                </p>
-                {user?.role === 'farmer' && (
-                  <div className="farmer-summary">
-                    <h4>Your Farm Summary:</h4>
-                    <ul>
-                      <li><strong>Crop:</strong> {user?.cropName}</li>
-                      <li><strong>Location:</strong> {user?.district}</li>
-                      <li><strong>Land Size:</strong> {user?.landSizeAcres ? `${user.landSizeAcres} acres` : 'Not specified'}</li>
-                      {user?.locationAddress && (
-                        <li><strong>Address:</strong> {user.locationAddress}</li>
-                      )}
-                    </ul>
-                  </div>
-                )}
+          {/* Tab Navigation */}
+          {user?.role === 'farmer' && (
+            <div className="tab-navigation">
+              <button 
+                className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
+                Overview
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'devices' ? 'active' : ''}`}
+                onClick={() => setActiveTab('devices')}
+              >
+                My Devices
+              </button>
+            </div>
+          )}
+
+          {/* Tab Content */}
+          {activeTab === 'overview' && (
+            <div className="content-sections">
+              <div className="content-section">
+                <h3 className="content-title">
+                  Welcome to AgriSense, {user?.fullName}!
+                </h3>
+                <div className="welcome-content">
+                  <p>
+                    {user?.role === 'farmer' 
+                      ? 'Your smart farming dashboard is ready. Monitor your soil conditions and manage your IoT devices below.'
+                      : 'Welcome to the AgriSense admin panel. You have access to manage the platform and monitor all farming activities.'
+                    }
+                  </p>
+                  {user?.role === 'farmer' && (
+                    <div className="farmer-summary">
+                      <h4>Your Farm Summary:</h4>
+                      <ul>
+                        <li><strong>Crop:</strong> {user?.cropName}</li>
+                        <li><strong>Location:</strong> {user?.district}</li>
+                        <li><strong>Land Size:</strong> {user?.landSizeAcres ? `${user.landSizeAcres} acres` : 'Not specified'}</li>
+                        {user?.locationAddress && (
+                          <li><strong>Address:</strong> {user.locationAddress}</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Weather Widget in Overview */}
+              {user?.role === 'farmer' && (
+                <div className="content-section">
+                  <h3 className="content-title">Weather Information</h3>
+                  <WeatherWidget />
+                </div>
+              )}
+              
+              {/* Sensor Data Overview for Farmers */}
+              {user?.role === 'farmer' && (
+                <div className="content-section">
+                  <SensorOverview user={user} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'devices' && user?.role === 'farmer' && (
+            <div className="content-sections">
+              <div className="content-section">
+                <DeviceManager user={user} />
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

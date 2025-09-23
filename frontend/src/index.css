@@ -536,6 +536,182 @@ body {
   font-weight: 600;
 }
 
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tab-btn {
+  padding: 0.8rem 1.5rem;
+  background: none;
+  border: none;
+  color: var(--gray-medium);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--primary-green);
+}
+
+.tab-btn.active {
+  color: var(--primary-green);
+  border-bottom-color: var(--primary-green);
+}
+
+/* Device Manager */
+.device-manager {
+  width: 100%;
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.device-header h3 {
+  color: var(--primary-green);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btn-add-device {
+  background: var(--primary-green);
+  color: var(--white);
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-add-device:hover {
+  background-color: var(--light-green);
+}
+
+/* Link Device Form */
+.link-device-form {
+  background: var(--very-light-green);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.link-device-form h4 {
+  color: var(--primary-green);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.link-device-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.link-device-form small {
+  color: var(--gray-medium);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  display: block;
+}
+
+/* Devices Grid */
+.devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.no-devices {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-medium);
+}
+
+.no-devices p {
+  margin: 0.5rem 0;
+}
+
+.device-card {
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.5rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.device-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.device-info h4 {
+  color: var(--gray-dark);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.device-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.api-key {
+  color: var(--gray-medium);
+  font-size: 0.8rem;
+  font-family: monospace;
+  background: var(--gray-light);
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+}
+
+.device-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.last-seen {
+  color: var(--gray-medium);
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.device-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-unlink {
+  background: #dc3545;
+  color: var(--white);
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.btn-unlink:hover {
+  background: #c82333;
+}
+
 /* Location Button Styles */
 .location-btn {
   padding: 0.6rem 1rem;
@@ -740,5 +916,296 @@ body {
   
   .dashboard-sidebar {
     padding: 0.8rem;
+  }
+}
+
+/* Sensor Overview Styles */
+.sensor-overview {
+  margin: 2rem 0;
+}
+
+.overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.overview-header h3 {
+  color: var(--black);
+  margin: 0;
+}
+
+.refresh-btn {
+  background: var(--light-green);
+  border: 1px solid var(--primary-green);
+  color: var(--primary-green);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  background: var(--primary-green);
+  color: var(--white);
+}
+
+.sensor-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.sensor-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sensor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.sensor-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sensor-card-header h4 {
+  color: var(--black);
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.last-updated {
+  color: var(--gray-600);
+  font-size: 0.85rem;
+  background: var(--very-light-green);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.sensor-metrics {
+  margin-bottom: 1rem;
+}
+
+.metric-primary {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--very-light-green);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-green);
+}
+
+.metric-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--black);
+  line-height: 1;
+}
+
+.metric-label {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.metric-status {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+}
+
+.metric-small-label {
+  color: var(--gray-600);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.metric-small-value {
+  color: var(--black);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.metric-small-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.moisture-progress {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.loading-state,
+.error-state,
+.no-data-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-600);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--gray-200);
+  border-top: 4px solid var(--primary-green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.retry-btn {
+  background: var(--primary-green);
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.retry-btn:hover {
+  background: var(--dark-green);
+}
+
+/* Enhanced Device Manager Styles */
+.sensor-data {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.sensor-data h5 {
+  color: var(--black);
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+}
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sensor-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  background: var(--very-light-green);
+  border-radius: 4px;
+}
+
+.sensor-label {
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.sensor-value {
+  color: var(--black);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sensor-updated {
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* Mobile responsive updates for sensor components */
+@media (max-width: 768px) {
+  .sensor-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sensor-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .overview-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .metric-primary {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .metric-icon {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
   }
 }

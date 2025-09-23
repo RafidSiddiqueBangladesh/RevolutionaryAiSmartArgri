@@ -1,0 +1,140 @@
+.weather-widget {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.weather-loading, .weather-error {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+
+.weather-error {
+  color: #e74c3c;
+}
+
+.current-weather h3, .weather-forecast h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.weather-icon {
+  width: 80px;
+  height: 80px;
+}
+
+.weather-info {
+  margin-left: 10px;
+}
+
+.temperature {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  line-height: 1;
+}
+
+.description {
+  text-transform: capitalize;
+  color: #666;
+  margin-top: 5px;
+}
+
+.weather-details {
+  display: flex;
+  justify-content: space-between;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.value {
+  font-weight: bold;
+  color: #333;
+}
+
+.weather-forecast h3 {
+  margin-top: 20px;
+}
+
+.forecast-container {
+  display: flex;
+  justify-content: space-between;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+}
+
+.forecast-date {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.forecast-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.forecast-temp {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.max {
+  font-weight: bold;
+  color: #333;
+}
+
+.min {
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .weather-details {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .detail {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .forecast-container {
+    justify-content: flex-start;
+    gap: 15px;
+  }
+}
