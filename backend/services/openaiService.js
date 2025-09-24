@@ -59,9 +59,9 @@ async function analyzeData(data) {
     
     RETURN RESPONSE IN THIS EXACT JSON FORMAT:
     {
-      "analysis": "Detailed analysis and recommendations in Bengali (Bangla) language for the farmer dashboard. Use simple Bengali that farmers can understand easily.",
+      "analysis": "Detailed analysis and recommendations in Bengali (Bangla) language for the farmer dashboard. Use simple Bengali that farmers can understand easily. Use 4-5 points on analitics.",
       "actionRequired": true/false,
-      "message": "Very short 1-2 sentence instruction in Bangla for SMS if actionRequired is true, null if false"
+      "message": "Very short 2-3 sentence instruction in Bangla for SMS if actionRequired is true, null if false"
     }
     
     CRITICAL CONDITIONS for actionRequired=true:

@@ -29,18 +29,18 @@ router.post('/retell-webhook', async (req, res) => {
 });
 
 /**
- * Function endpoint: Get farmer data by phone number
+ * Function endpoint: Get farmer + sensor + weather data by phone number
  */
 router.post('/get-farmer-data', async (req, res) => {
   try {
     console.log('\n🎤 ===== RETELL AI FUNCTION CALL =====');
     console.log('Full request body:', JSON.stringify(req.body, null, 2));
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    
+
     // Try different parameter names that Retell AI might use
     const phone_number = req.body.phone_number || req.body.phoneNumber || req.body.number || req.body.from_number;
-    console.log(`🔍 Getting farmer data for: ${phone_number}`);
-    
+    console.log(`🔍 Getting farm package for: ${phone_number}`);
+
     if (!phone_number) {
       console.log('❌ No phone number provided in request');
       return res.json({
@@ -48,91 +48,121 @@ router.post('/get-farmer-data', async (req, res) => {
         message: "No phone number provided"
       });
     }
-    
-    const { getFarmerByPhoneNumber } = require('../services/retellService');
-    const farmerData = await getFarmerByPhoneNumber(phone_number);
-    
-    if (farmerData) {
-      res.json({
-        success: true,
-        farmer: farmerData
-      });
-    } else {
-      res.json({
+
+    const { getFarmerByPhoneNumber, getFreshSensorData, getCurrentWeather, getForecastWeather } = require('../services/retellService');
+    const farmer = await getFarmerByPhoneNumber(phone_number);
+
+    if (!farmer) {
+      return res.json({
         success: false,
         message: "Farmer not found in database"
       });
     }
+
+    const sensors = await getFreshSensorData(farmer.id);
+    const weather = await getCurrentWeather(farmer.latitude, farmer.longitude);
+    const forecast = await getForecastWeather(farmer.latitude, farmer.longitude);
+
+    // Sanitize farmer object
+    const safeFarmer = {
+      full_name: farmer.full_name,
+      mobile_number: farmer.mobile_number,
+      crop_name: farmer.crop_name,
+      land_size_acres: farmer.land_size_acres,
+      location_address: farmer.location_address
+    };
+
+    // Slim forecast: ensure only needed fields and include day
+    const slimForecast = Array.isArray(forecast)
+      ? forecast.map(day => ({
+          date: day.date,
+          day: day.day,
+          temp_min: day.temp_min,
+          temp_max: day.temp_max,
+          humidity: day.humidity,
+          description: day.description
+        }))
+      : null;
+
+    return res.json({
+      success: true,
+      farmer: safeFarmer,
+      sensors,
+      weather,
+      forecast: slimForecast
+    });
   } catch (error) {
-    console.error('Get farmer data error:', error);
+    console.error('Get combined farm data error:', error);
     res.status(500).json({
       success: false,
-      message: "Error retrieving farmer data"
+      message: "Error retrieving combined farm data"
     });
   }
 });
 
 /**
- * Function endpoint: Get sensor data by farmer ID
+ * JWT-protected endpoint: Get farmer + sensor + weather data using auth token
  */
-router.post('/get-sensor-data', async (req, res) => {
+router.post('/get-farmer-data-jwt', authenticateToken, async (req, res) => {
   try {
-    const { farmer_id } = req.body;
-    console.log(`📊 Getting sensor data for farmer: ${farmer_id}`);
-    
-    const { getFreshSensorData } = require('../services/retellService');
-    const sensorData = await getFreshSensorData(farmer_id);
-    
-    if (sensorData) {
-      res.json({
-        success: true,
-        sensors: sensorData
-      });
-    } else {
-      res.json({
+    const authUser = req.user;
+
+    if (!authUser) {
+      return res.status(401).json({
         success: false,
-        message: "No sensor data found"
+        message: 'Unauthorized'
       });
     }
+
+    const { getFreshSensorData, getCurrentWeather, getForecastWeather } = require('../services/retellService');
+
+    // Use authenticated user's profile as farmer
+    const farmer = authUser;
+
+    const sensors = await getFreshSensorData(farmer.id);
+    const weather = await getCurrentWeather(farmer.latitude, farmer.longitude);
+    const forecast = await getForecastWeather(farmer.latitude, farmer.longitude);
+
+    // Sanitize farmer object
+    const safeFarmer = {
+      full_name: farmer.full_name,
+      mobile_number: farmer.mobile_number,
+      crop_name: farmer.crop_name,
+      land_size_acres: farmer.land_size_acres,
+      location_address: farmer.location_address
+    };
+
+    // Slim forecast: ensure only needed fields and include day
+    const slimForecast = Array.isArray(forecast)
+      ? forecast.map(day => ({
+          date: day.date,
+          day: day.day,
+          temp_min: day.temp_min,
+          temp_max: day.temp_max,
+          humidity: day.humidity,
+          description: day.description
+        }))
+      : null;
+
+    return res.json({
+      success: true,
+      farmer: safeFarmer,
+      sensors,
+      weather,
+      forecast: slimForecast
+    });
   } catch (error) {
-    console.error('Get sensor data error:', error);
+    console.error('Get combined farm data (JWT) error:', error);
     res.status(500).json({
       success: false,
-      message: "Error retrieving sensor data"
+      message: 'Error retrieving combined farm data'
     });
   }
 });
 
-/**
- * Function endpoint: Get weather data by location
- */
-router.post('/get-weather-data', async (req, res) => {
-  try {
-    const { latitude, longitude } = req.body;
-    console.log(`🌤️ Getting weather data for: ${latitude}, ${longitude}`);
-    
-    const { getCurrentWeather } = require('../services/retellService');
-    const weatherData = await getCurrentWeather(latitude, longitude);
-    
-    if (weatherData) {
-      res.json({
-        success: true,
-        weather: weatherData
-      });
-    } else {
-      res.json({
-        success: false,
-        message: "Weather data not available"
-      });
-    }
-  } catch (error) {
-    console.error('Get weather data error:', error);
-    res.status(500).json({
-      success: false,
-      message: "Error retrieving weather data"
-    });
-  }
-});
+// Removed: separate sensor endpoint (consolidated into /get-farmer-data)
+
+// Removed: separate weather endpoint (consolidated into /get-farmer-data)
 
 /**
  * Test endpoint to manually trigger a voice call (for development)

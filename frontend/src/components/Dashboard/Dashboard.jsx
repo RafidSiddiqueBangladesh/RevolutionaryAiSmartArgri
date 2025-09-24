@@ -137,6 +137,18 @@ const Dashboard = () => {
             </div>
           )}
 
+          {/* Admin Tab Navigation */}
+          {user?.role === 'admin' && (
+            <div className="tab-navigation">
+              <button 
+                className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
+                Overview
+              </button>
+            </div>
+          )}
+
           {/* Tab Content */}
           {activeTab === 'overview' && (
             <div className="content-sections">
@@ -193,6 +205,7 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
         </div>
       </div>
 

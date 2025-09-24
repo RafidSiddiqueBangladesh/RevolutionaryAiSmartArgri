@@ -7,6 +7,10 @@ const deviceRoutes = require('./routes/device');
 const weatherRoutes = require('./routes/weather');
 const analyticsRoutes = require('./routes/analytics');
 const voiceRoutes = require('./routes/voice');
+const scheduledAnalyticsRoutes = require('./routes/scheduledAnalytics');
+
+// Initialize scheduled analytics service
+const scheduledAnalyticsService = require('./services/scheduledAnalyticsService');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -24,6 +28,7 @@ app.use('/api/device', deviceRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api/scheduled-analytics', scheduledAnalyticsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 

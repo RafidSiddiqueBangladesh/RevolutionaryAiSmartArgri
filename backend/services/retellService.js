@@ -9,7 +9,9 @@ require('dotenv').config();
 const RETELL_API_KEY = process.env.RETELL_API_KEY;
 const RETELL_PHONE_NUMBER = process.env.RETELL_PHONE_NUMBER || '+12563294669'; // Default fallback
 const RETELL_BASE_URL = 'https://api.retellai.com/v2';
-const AGRISENSE_BACKEND_URL = process.env.AGRISENSE_BACKEND_URL || 'https://agrisense-z6ks.onrender.com';
+const AGRISENSE_BACKEND_URL = process.env.AGRISENSE_BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
 
 /**
  * Create a voice call for critical farm alerts
@@ -294,19 +296,98 @@ async function getFreshSensorData(farmerId) {
 async function getCurrentWeather(latitude, longitude) {
   try {
     if (!latitude || !longitude) return null;
-    
-    const response = await axios.get(
-      `${AGRISENSE_BACKEND_URL}/api/weather/current?lat=${latitude}&lon=${longitude}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.INTERNAL_API_TOKEN}`
-        }
+
+    if (!WEATHER_API_KEY) {
+      console.warn('WEATHER_API_KEY not set; cannot fetch weather');
+      return null;
+    }
+
+    console.log('🌤️ Fetching weather directly from OpenWeather with', { latitude, longitude });
+    const response = await axios.get(`${WEATHER_API_URL}/weather`, {
+      params: {
+        lat: latitude,
+        lon: longitude,
+        appid: WEATHER_API_KEY,
+        units: 'metric'
       }
-    );
-    
-    return response.data;
+    });
+
+    const data = response.data;
+    const ts = data?.dt ? new Date(data.dt * 1000) : new Date();
+    const dateStr = ts.toISOString().split('T')[0];
+    const dayStr = ts.toLocaleDateString('en-US', { weekday: 'short' });
+    const description = data?.weather?.[0]?.description || null;
+    const normalized = {
+      temperature: data?.main?.temp ?? null,
+      humidity: data?.main?.humidity ?? null,
+      rainfall: data?.rain?.['1h'] || data?.rain?.['3h'] || 0,
+      forecast: description,
+      description,
+      date: dateStr,
+      day: dayStr
+    };
+    console.log('🌤️ Normalized weather:', normalized);
+    return normalized;
   } catch (error) {
-    console.error('Failed to fetch weather data:', error);
+    console.error('Failed to fetch weather data:', error.response?.status, error.response?.data || error.message);
+    return null;
+  }
+}
+
+/**
+ * Get 5-day forecast summarized per day
+ */
+async function getForecastWeather(latitude, longitude) {
+  try {
+    if (!latitude || !longitude) return null;
+    if (!WEATHER_API_KEY) {
+      console.warn('WEATHER_API_KEY not set; cannot fetch forecast');
+      return null;
+    }
+
+    console.log('🌤️ Fetching 5-day forecast from OpenWeather with', { latitude, longitude });
+    const response = await axios.get(`${WEATHER_API_URL}/forecast`, {
+      params: {
+        lat: latitude,
+        lon: longitude,
+        appid: WEATHER_API_KEY,
+        units: 'metric'
+      }
+    });
+
+    const list = response.data?.list || [];
+    const dailyMap = new Map();
+
+    list.forEach(item => {
+      const d = new Date(item.dt * 1000);
+      const date = d.toISOString().split('T')[0];
+      const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const min = item.main?.temp_min;
+      const max = item.main?.temp_max;
+      const humidity = item.main?.humidity;
+      const weather = item.weather?.[0];
+
+      if (!dailyMap.has(date)) {
+        dailyMap.set(date, {
+          date,
+          day,
+          temp_min: min,
+          temp_max: max,
+          humidity,
+          description: weather?.description || null
+        });
+      } else {
+        const existing = dailyMap.get(date);
+        existing.temp_min = Math.min(existing.temp_min, min);
+        existing.temp_max = Math.max(existing.temp_max, max);
+      }
+    });
+
+    const days = Array.from(dailyMap.values()).slice(0, 5);
+    console.log('🌤️ Forecast days:', days.length);
+    return days;
+  } catch (error) {
+    console.error('Failed to fetch forecast data:', error.response?.status, error.response?.data || error.message);
     return null;
   }
 }
@@ -387,5 +468,6 @@ module.exports = {
   getFreshSensorData,
   getFarmerByPhoneNumber,
   getCurrentWeather,
+  getForecastWeather,
   generatePersonalizedResponse
 };

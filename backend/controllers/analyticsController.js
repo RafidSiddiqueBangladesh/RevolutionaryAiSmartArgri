@@ -81,12 +81,17 @@ exports.getFarmAnalysis = async (req, res) => {
       return res.status(404).json({ error: 'No sensor data found for this device' });
     }
     
-    // Get latest weather data from cache
+    // Get latest weather data from cache (specifically current weather)
+    // Use same 30-minute cache expiration as weather controller
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    
     const { data: weatherData, error: weatherError } = await supabase
       .from('weather_cache')
       .select('data')
-      .eq('latitude', farmer.latitude)
-      .eq('longitude', farmer.longitude)
+      .eq('type', 'current')
+      .eq('latitude', parseFloat(farmer.latitude).toFixed(4))
+      .eq('longitude', parseFloat(farmer.longitude).toFixed(4))
+      .gt('created_at', thirtyMinutesAgo)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -94,15 +99,73 @@ exports.getFarmAnalysis = async (req, res) => {
     let weatherInfo = {};
     
     if (weatherError || !weatherData) {
-      console.warn('Weather data not found, using default values');
-      weatherInfo = {
-        temperature: 25,
-        humidity: 60,
-        rainfall: 0,
-        forecast: 'No weather data available'
-      };
+      console.warn('Weather data not found or expired, attempting to fetch fresh data');
+      console.warn('Weather error:', weatherError);
+      console.warn('Coordinates being searched:', parseFloat(farmer.latitude).toFixed(4), parseFloat(farmer.longitude).toFixed(4));
+      console.warn('Cache expiration time:', thirtyMinutesAgo);
+      
+      // Try to fetch fresh weather data if cache is expired
+      try {
+        const axios = require('axios');
+        const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+        const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
+        
+        const response = await axios.get(`${WEATHER_API_URL}/weather`, {
+          params: {
+            lat: farmer.latitude,
+            lon: farmer.longitude,
+            appid: WEATHER_API_KEY,
+            units: 'metric'
+          }
+        });
+        
+        // Cache the fresh response
+        await supabase.from('weather_cache').insert({
+          type: 'current',
+          latitude: parseFloat(farmer.latitude).toFixed(4),
+          longitude: parseFloat(farmer.longitude).toFixed(4),
+          data: JSON.stringify(response.data)
+        });
+        
+        // Extract the correct fields from fresh OpenWeatherMap data
+        weatherInfo = {
+          temperature: response.data.main?.temp || 25,
+          humidity: response.data.main?.humidity || 60,
+          rainfall: response.data.rain?.['1h'] || response.data.rain?.['3h'] || 0,
+          forecast: response.data.weather?.[0]?.description || 'Based on current conditions'
+        };
+        
+        console.log('Fresh weather data fetched and cached:', weatherInfo);
+      } catch (fetchError) {
+        console.error('Failed to fetch fresh weather data:', fetchError.message);
+        weatherInfo = {
+          temperature: 25,
+          humidity: 60,
+          rainfall: 0,
+          forecast: 'No weather data available'
+        };
+      }
     } else {
-      weatherInfo = weatherData.data;
+      // Parse the cached weather data (it's stored as JSON string)
+      const parsedWeatherData = typeof weatherData.data === 'string' 
+        ? JSON.parse(weatherData.data) 
+        : weatherData.data;
+      
+      console.log('Parsed weather data for OpenAI:', {
+        original: parsedWeatherData.main,
+        rainfall: parsedWeatherData.rain,
+        weather: parsedWeatherData.weather?.[0]
+      });
+      
+      // Extract the correct fields from OpenWeatherMap data structure
+      weatherInfo = {
+        temperature: parsedWeatherData.main?.temp || 25,
+        humidity: parsedWeatherData.main?.humidity || 60,
+        rainfall: parsedWeatherData.rain?.['1h'] || parsedWeatherData.rain?.['3h'] || 0,
+        forecast: parsedWeatherData.weather?.[0]?.description || 'Based on current conditions'
+      };
+      
+      console.log('Final weather info for OpenAI:', weatherInfo);
     }
     
     // Prepare data for OpenAI analysis
@@ -121,10 +184,10 @@ exports.getFarmAnalysis = async (req, res) => {
         plantingDate: 'Unknown' // Could be added to user schema in future
       },
       weather: {
-        temperature: weatherInfo.temperature || weatherInfo.current?.temp,
-        humidity: weatherInfo.humidity || weatherInfo.current?.humidity,
-        rainfall: weatherInfo.rainfall || weatherInfo.daily?.[0]?.rain || 0,
-        forecast: weatherInfo.forecast || 'Based on current conditions'
+        temperature: weatherInfo.temperature,
+        humidity: weatherInfo.humidity,
+        rainfall: weatherInfo.rainfall,
+        forecast: weatherInfo.forecast
       },
       sensors: {
         soilMoisture: sensorData.moisture_level,
@@ -239,9 +302,9 @@ exports.getFarmAnalysis = async (req, res) => {
                 }
               },
               weather: {
-                temperature: weatherInfo.temperature || weatherInfo.current?.temp || 25,
-                humidity: weatherInfo.humidity || weatherInfo.current?.humidity || 60,
-                rainfall: weatherInfo.rainfall || weatherInfo.daily?.[0]?.rain || 0
+                temperature: weatherInfo.temperature || 25,
+                humidity: weatherInfo.humidity || 60,
+                rainfall: weatherInfo.rainfall || 0
               },
               alert: {
                 type: alertType
@@ -389,26 +452,87 @@ exports.getChatbotFarmData = async (req, res) => {
       }
     }
     
-    // Get latest weather data from cache
+    // Get latest weather data from cache (specifically current weather)
+    // Use same 30-minute cache expiration as weather controller
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    
     const { data: weatherData, error: weatherError } = await supabase
       .from('weather_cache')
       .select('data')
-      .eq('latitude', farmer.latitude)
-      .eq('longitude', farmer.longitude)
+      .eq('type', 'current')
+      .eq('latitude', parseFloat(farmer.latitude).toFixed(4))
+      .eq('longitude', parseFloat(farmer.longitude).toFixed(4))
+      .gt('created_at', thirtyMinutesAgo)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
     
     let weatherInfo = {};
     if (weatherError || !weatherData) {
-      weatherInfo = {
-        temperature: 25,
-        humidity: 60,
-        rainfall: 0,
-        forecast: 'No weather data available'
-      };
+      console.warn('Chatbot: Weather data not found or expired, attempting to fetch fresh data');
+      
+      // Try to fetch fresh weather data if cache is expired
+      try {
+        const axios = require('axios');
+        const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+        const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
+        
+        const response = await axios.get(`${WEATHER_API_URL}/weather`, {
+          params: {
+            lat: farmer.latitude,
+            lon: farmer.longitude,
+            appid: WEATHER_API_KEY,
+            units: 'metric'
+          }
+        });
+        
+        // Cache the fresh response
+        await supabase.from('weather_cache').insert({
+          type: 'current',
+          latitude: parseFloat(farmer.latitude).toFixed(4),
+          longitude: parseFloat(farmer.longitude).toFixed(4),
+          data: JSON.stringify(response.data)
+        });
+        
+        // Extract the correct fields from fresh OpenWeatherMap data
+        weatherInfo = {
+          temperature: response.data.main?.temp || 25,
+          humidity: response.data.main?.humidity || 60,
+          rainfall: response.data.rain?.['1h'] || response.data.rain?.['3h'] || 0,
+          forecast: response.data.weather?.[0]?.description || 'Based on current conditions'
+        };
+        
+        console.log('Chatbot: Fresh weather data fetched and cached:', weatherInfo);
+      } catch (fetchError) {
+        console.error('Chatbot: Failed to fetch fresh weather data:', fetchError.message);
+        weatherInfo = {
+          temperature: 25,
+          humidity: 60,
+          rainfall: 0,
+          forecast: 'No weather data available'
+        };
+      }
     } else {
-      weatherInfo = weatherData.data;
+      // Parse the cached weather data (it's stored as JSON string)
+      const parsedWeatherData = typeof weatherData.data === 'string' 
+        ? JSON.parse(weatherData.data) 
+        : weatherData.data;
+      
+      console.log('Chatbot: Parsed weather data:', {
+        original: parsedWeatherData.main,
+        rainfall: parsedWeatherData.rain,
+        weather: parsedWeatherData.weather?.[0]
+      });
+      
+      // Extract the correct fields from OpenWeatherMap data structure
+      weatherInfo = {
+        temperature: parsedWeatherData.main?.temp || 25,
+        humidity: parsedWeatherData.main?.humidity || 60,
+        rainfall: parsedWeatherData.rain?.['1h'] || parsedWeatherData.rain?.['3h'] || 0,
+        forecast: parsedWeatherData.weather?.[0]?.description || 'Based on current conditions'
+      };
+      
+      console.log('Chatbot: Final weather info:', weatherInfo);
     }
     
     // Prepare comprehensive farm context for chatbot
@@ -427,10 +551,10 @@ exports.getChatbotFarmData = async (req, res) => {
         plantingDate: 'Unknown'
       },
       weather: {
-        temperature: weatherInfo.temperature || weatherInfo.current?.temp,
-        humidity: weatherInfo.humidity || weatherInfo.current?.humidity,
-        rainfall: weatherInfo.rainfall || weatherInfo.daily?.[0]?.rain || 0,
-        forecast: weatherInfo.forecast || 'Based on current conditions'
+        temperature: weatherInfo.temperature,
+        humidity: weatherInfo.humidity,
+        rainfall: weatherInfo.rainfall,
+        forecast: weatherInfo.forecast
       },
       sensors: sensorData ? {
         soilMoisture: sensorData.moisture_level,
