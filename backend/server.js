@@ -9,6 +9,8 @@ const analyticsRoutes = require('./routes/analytics');
 const voiceRoutes = require('./routes/voice');
 const scheduledAnalyticsRoutes = require('./routes/scheduledAnalytics');
 const aiRoutes = require('./routes/ai');
+const adminRoutes = require('./routes/admin');
+const pricesRoutes = require('./routes/prices');
 
 // Initialize scheduled analytics service
 const scheduledAnalyticsService = require('./services/scheduledAnalyticsService');
@@ -31,6 +33,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/scheduled-analytics', scheduledAnalyticsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/prices', pricesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 

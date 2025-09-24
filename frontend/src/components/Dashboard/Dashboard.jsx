@@ -6,6 +6,9 @@ import WeatherWidget from '../Weather/WeatherWidget';
 import AnalyticsPage from '../Analytics/AnalyticsPage';
 import Chatbot from '../Chatbot/Chatbot';
 import ChatbotButton from '../Chatbot/ChatbotButton';
+import AdminDashboard from './AdminDashboard';
+import AdminPrices from './AdminPrices';
+import FarmerPrices from './FarmerPrices';
 import { Sprout, LayoutDashboard, Cpu, BarChart3, User, Phone, BadgeCheck, Leaf, MapPin, Ruler, Menu, X } from 'lucide-react';
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -176,6 +179,13 @@ const Dashboard = () => {
                 <BarChart3 className="tab-icon" aria-hidden="true" />
                 Analytics
               </button>
+              <button
+                className={`tab-btn ${activeTab === 'prices' ? 'active' : ''}`}
+                onClick={() => setActiveTab('prices')}
+              >
+                <BarChart3 className="tab-icon" aria-hidden="true" />
+                Prices
+              </button>
             </div>
           )}
 
@@ -189,11 +199,18 @@ const Dashboard = () => {
                 <LayoutDashboard className="tab-icon" aria-hidden="true" />
                 Overview
               </button>
+              <button
+                className={`tab-btn ${activeTab === 'prices' ? 'active' : ''}`}
+                onClick={() => setActiveTab('prices')}
+              >
+                <BarChart3 className="tab-icon" aria-hidden="true" />
+                Prices
+              </button>
             </div>
           )}
 
           {/* Tab Content */}
-          {activeTab === 'overview' && (
+          {activeTab === 'overview' && user?.role === 'farmer' && (
             <div className="content-sections">
               <div className="content-section">
                 <h3 className="content-title">
@@ -232,6 +249,14 @@ const Dashboard = () => {
             </div>
           )}
 
+          {activeTab === 'overview' && user?.role === 'admin' && (
+            <div className="content-sections">
+              <div className="content-section">
+                <AdminDashboard />
+              </div>
+            </div>
+          )}
+
           {activeTab === 'devices' && user?.role === 'farmer' && (
             <div className="content-sections">
               <div className="content-section">
@@ -243,6 +268,18 @@ const Dashboard = () => {
           {activeTab === 'analytics' && user?.role === 'farmer' && (
             <div className="analytics-section">
               <AnalyticsPage />
+            </div>
+          )}
+
+          {activeTab === 'prices' && user?.role === 'farmer' && (
+            <div className="content-sections">
+              <FarmerPrices />
+            </div>
+          )}
+
+          {activeTab === 'prices' && user?.role === 'admin' && (
+            <div className="content-sections">
+              <AdminPrices />
             </div>
           )}
 

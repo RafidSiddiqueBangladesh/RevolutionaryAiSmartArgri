@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://agrisense-z6ks.onrender.com',
+        target: process.env.VITE_PROXY_TARGET || 'https://agrisense-z6ks.onrender.com',
         changeOrigin: true
       }
     }

@@ -65,16 +65,62 @@ const getUserDevices = async (req, res) => {
     const userId = req.user.id;
 
     const { data: devices, error } = await supabase
-      .from('device_dashboard')
-      .select('*')
-      .eq('user_id', userId);
+      .from('devices')
+      .select('id, device_api_key, device_name, user_id, is_active, last_seen, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Database error:', error);
       return res.status(500).json({ error: 'Failed to fetch devices' });
     }
 
-    res.json({ devices });
+    // Fetch current sensor readings for these devices
+    const deviceIds = (devices || []).map(d => d.id);
+    let readingsByDeviceId = {};
+    if (deviceIds.length > 0) {
+      const { data: readings } = await supabase
+        .from('current_sensor_data')
+        .select('*')
+        .in('device_id', deviceIds);
+      readingsByDeviceId = (readings || []).reduce((acc, r) => {
+        acc[r.device_id] = r;
+        return acc;
+      }, {});
+    }
+
+    // Normalize payload to match existing frontend expectations
+    const now = Date.now();
+    const normalized = (devices || []).map(d => {
+      const r = readingsByDeviceId[d.id];
+      const lastSeenMs = d.last_seen ? new Date(d.last_seen).getTime() : 0;
+      let status = 'Offline';
+      if (lastSeenMs) {
+        const diffMin = (now - lastSeenMs) / 60000;
+        if (diffMin <= 5) status = 'Online';
+        else if (diffMin <= 1440) status = 'Recently Active';
+      }
+      return {
+        device_id: d.id,
+        device_name: d.device_name || 'Unnamed Device',
+        device_api_key: d.device_api_key,
+        status,
+        last_seen: d.last_seen,
+        // Sensor snapshot fields used by UI
+        moisture_level: r?.moisture_level ?? null,
+        ph_level: r?.ph_level ?? null,
+        temperature: r?.temperature ?? null,
+        humidity: r?.humidity ?? null,
+        light_intensity: r?.light_intensity ?? null,
+        soil_conductivity: r?.soil_conductivity ?? null,
+        nitrogen_level: r?.nitrogen_level ?? null,
+        phosphorus_level: r?.phosphorus_level ?? null,
+        potassium_level: r?.potassium_level ?? null,
+        sensor_last_updated: r?.last_updated ?? null
+      };
+    });
+
+    res.json({ devices: normalized });
   } catch (error) {
     console.error('Get devices error:', error);
     res.status(500).json({ error: 'Internal server error' });

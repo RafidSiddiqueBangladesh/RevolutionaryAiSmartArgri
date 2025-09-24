@@ -45,11 +45,10 @@ class ScheduledAnalyticsService {
         .select(`
           id,
           full_name,
-          phone_number,
+          mobile_number,
           latitude,
           longitude,
           location_address,
-          district_name,
           land_size_acres,
           crop_name,
           devices (
@@ -191,7 +190,7 @@ class ScheduledAnalyticsService {
       const analysisData = {
         farmer: {
           name: farmer.full_name,
-          location: farmer.location_address || farmer.district_name || 'Unknown',
+          location: farmer.location_address || 'Unknown',
           landSize: farmer.land_size_acres || 'Unknown',
           coordinates: {
             latitude: farmer.latitude,
@@ -214,9 +213,11 @@ class ScheduledAnalyticsService {
           soilTemperature: sensorData.temperature,
           lightIntensity: sensorData.light_intensity,
           soilConductivity: sensorData.soil_conductivity,
-          nitrogen: sensorData.nitrogen_level,
-          phosphorus: sensorData.phosphorus_level,
-          potassium: sensorData.potassium_level
+          nutrients: {
+            nitrogen: sensorData.nitrogen_level,
+            phosphorus: sensorData.phosphorus_level,
+            potassium: sensorData.potassium_level
+          }
         }
       };
 
@@ -250,9 +251,45 @@ class ScheduledAnalyticsService {
       }
 
       // Check for critical conditions and trigger voice call
-      if (this.isCriticalCondition(sensorData, weatherInfo)) {
+      if (this.isCriticalCondition(sensorData, weatherInfo) && farmer.mobile_number) {
         try {
-          await createCriticalAlertCall(farmer.id, 'critical_condition');
+          const farmData = {
+            farmer: {
+              id: farmer.id,
+              name: farmer.full_name,
+              location: farmer.location_address || 'Unknown',
+              landSize: farmer.land_size_acres,
+              mobile: farmer.mobile_number
+            },
+            crop: {
+              type: farmer.crop_name || 'Unknown'
+            },
+            sensors: {
+              soilMoisture: sensorData.moisture_level,
+              soilPH: sensorData.ph_level,
+              soilTemperature: sensorData.temperature,
+              humidity: sensorData.humidity,
+              lightIntensity: sensorData.light_intensity,
+              soilConductivity: sensorData.soil_conductivity,
+              nutrients: {
+                nitrogen: sensorData.nitrogen_level,
+                phosphorus: sensorData.phosphorus_level,
+                potassium: sensorData.potassium_level
+              }
+            },
+            weather: {
+              temperature: weatherInfo.temperature,
+              humidity: weatherInfo.humidity,
+              rainfall: weatherInfo.rainfall
+            },
+            alert: {
+              type: 'critical_condition'
+            },
+            device: {
+              id: deviceId
+            }
+          };
+          await createCriticalAlertCall(farmData, farmer.mobile_number, analysisResult.message || 'গুরুত্বপূর্ণ সতর্কতা।');
           console.log(`   📞 Critical alert call initiated for ${farmer.full_name}`);
         } catch (callError) {
           console.error(`   ❌ Voice call failed for ${farmer.full_name}:`, callError.message);
