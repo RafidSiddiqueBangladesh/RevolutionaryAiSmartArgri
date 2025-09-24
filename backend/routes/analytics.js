@@ -2,6 +2,7 @@ const express = require('express');
 const { getFarmAnalysis, getChatbotFarmData } = require('../controllers/analyticsController');
 const { sendTestSMS } = require('../services/smsService');
 const { authenticateToken } = require('../middleware/auth');
+const openaiService = require('../services/openaiService');
 
 const router = express.Router();
 

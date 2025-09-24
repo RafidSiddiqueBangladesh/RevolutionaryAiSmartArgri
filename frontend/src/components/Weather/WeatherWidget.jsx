@@ -37,7 +37,12 @@ const WeatherWidget = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching weather data:', err);
-        setError('Failed to load weather data');
+        // If backend indicates weather service unauthorized, show actionable message
+        if (err?.status === 401 || (err?.message && err.message.toLowerCase().includes('weather service unavailable'))) {
+          setError('Weather service unavailable. Please configure WEATHER_API_KEY on the backend.');
+        } else {
+          setError('Failed to load weather data');
+        }
         setLoading(false);
       }
     };

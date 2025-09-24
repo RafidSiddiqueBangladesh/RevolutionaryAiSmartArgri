@@ -1,4 +1,5 @@
 const { OpenAI } = require('openai');
+const axios = require('axios');
 require('dotenv').config();
 
 // Initialize OpenAI client
@@ -17,6 +18,45 @@ const openai = new OpenAI({
  */
 async function analyzeData(data) {
   try {
+    const provider = (process.env.AI_PROVIDER || 'openai').toLowerCase();
+    if (provider === 'smythos') {
+      // Forward request to Smythos external agent and expect compatible response
+      const url = process.env.SMYTHOS_OUTBOUND_ANALYSIS_URL || 'https://cmfwuqtpo168o23qufoye75r8.agent.pa.smyth.ai/api/analyze_farmer_data';
+      if (!url) {
+        throw new Error('SMYTHOS_OUTBOUND_ANALYSIS_URL is not set');
+      }
+
+      const response = await axios.post(url, {
+        farmerData: data,
+        userId: data?.meta?.userId || null
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-ai-provider': 'smythos',
+          'x-webhook-callback': process.env.SMYTHOS_ANALYSIS_CALLBACK_URL || ''
+        },
+        timeout: 20000
+      });
+
+      // Support two shapes:
+      // 1) { analysis, actionRequired, message }
+      // 2) { id, name, result: { Output: { analysis, actionRequired, message } } }
+      const raw = response.data || {};
+      const output = raw?.result?.Output || raw;
+      if (!output || typeof output.actionRequired === 'undefined' || !('analysis' in output)) {
+        throw new Error('Smythos response missing required fields (analysis/actionRequired)');
+      }
+
+      return {
+        timestamp: new Date().toISOString(),
+        analysis: output.analysis,
+        actionRequired: Boolean(output.actionRequired),
+        message: output.message ?? null,
+        userId: output.userId || data?.meta?.userId || null,
+        provider: 'smythos'
+      };
+    }
+
     const { weather, farmer, sensors, crop } = data;
     
     // Enhanced logging for OpenAI requests

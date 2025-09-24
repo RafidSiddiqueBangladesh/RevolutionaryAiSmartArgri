@@ -200,6 +200,9 @@ exports.getFarmAnalysis = async (req, res) => {
           phosphorus: sensorData.phosphorus_level,
           potassium: sensorData.potassium_level
         }
+      },
+      meta: {
+        userId: userId
       }
     };
     

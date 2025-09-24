@@ -29,10 +29,10 @@ const AnalyticsPage = () => {
   };
 
   return (
-    <Layout style={{ padding: '20px' }}>
+    <Layout className="analytics-layout">
       <Content>
         <Title level={2}>Farm Analytics</Title>
-        <AnalyticsReport 
+        <AnalyticsReport
           loading={loading}
           error={error}
           data={analysisData}

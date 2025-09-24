@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sendChatMessage, getWelcomeMessage, getSuggestedQuestions } from '../../services/chatbotService';
 import './Chatbot.css';
+import { Sprout, X, Send, Loader2 } from 'lucide-react';
 
 const Chatbot = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState([]);
@@ -154,7 +155,7 @@ const Chatbot = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="chatbot-header">
           <div className="chatbot-header-info">
-            <div className="chatbot-avatar">🌾</div>
+            <div className="chatbot-avatar" aria-hidden="true"><Sprout /></div>
             <div className="chatbot-title">
               <h3>AgriSense AI</h3>
               <span className="chatbot-status">
@@ -162,8 +163,8 @@ const Chatbot = ({ isOpen, onClose }) => {
               </span>
             </div>
           </div>
-          <button className="chatbot-close" onClick={onClose}>
-            ✕
+          <button className="chatbot-close" onClick={onClose} aria-label="Close chat">
+            <X />
           </button>
         </div>
 
@@ -237,9 +238,9 @@ const Chatbot = ({ isOpen, onClose }) => {
               className="send-btn"
             >
               {isLoading ? (
-                <div className="loading-spinner">⟳</div>
+                <Loader2 className="loading-spinner" />
               ) : (
-                '📤'
+                <Send />
               )}
             </button>
           </div>

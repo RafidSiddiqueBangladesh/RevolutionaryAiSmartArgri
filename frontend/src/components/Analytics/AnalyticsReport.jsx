@@ -8,9 +8,9 @@ const AnalyticsReport = ({ loading, error, data, onAnalyze }) => {
   // If loading, show spinner
   if (loading) {
     return (
-      <Card style={{ textAlign: 'center', padding: '30px' }}>
+      <Card className="card-centered-lg">
         <Spin size="large" />
-        <Paragraph style={{ marginTop: 20 }}>
+        <Paragraph className="mt-20">
           Analyzing your farm data with AI...
         </Paragraph>
       </Card>
@@ -27,10 +27,10 @@ const AnalyticsReport = ({ loading, error, data, onAnalyze }) => {
           type="error"
           showIcon
         />
-        <Button 
-          type="primary" 
-          onClick={onAnalyze} 
-          style={{ marginTop: 16 }}
+        <Button
+          type="primary"
+          onClick={onAnalyze}
+          className="mt-16"
         >
           Try Again
         </Button>
@@ -41,16 +41,16 @@ const AnalyticsReport = ({ loading, error, data, onAnalyze }) => {
   // If no data and not loading, show analyze button
   if (!data) {
     return (
-      <Card style={{ textAlign: 'center', padding: '20px' }}>
-        <BarChartOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
+      <Card className="card-centered-md">
+        <BarChartOutlined className="icon-xl brand-accent mb-16" />
         <Title level={4}>Farm Analysis</Title>
         <Paragraph>
           Get AI-powered insights about your farm's condition and recommendations
           for optimal crop growth based on sensor data and weather information.
         </Paragraph>
-        <Button 
-          type="primary" 
-          size="large" 
+        <Button
+          type="primary"
+          size="large"
           onClick={onAnalyze}
           icon={<ThunderboltOutlined />}
         >
@@ -76,19 +76,19 @@ const AnalyticsReport = ({ loading, error, data, onAnalyze }) => {
         <>
           <Divider />
           <Alert
-            message="⚠️ Critical Alert - Immediate Action Required"
+            message="Critical Alert - Immediate Action Required"
             description={alertMessage}
             type="warning"
             showIcon
-            style={{ marginBottom: 16 }}
+            className="mb-16"
           />
           {alertRecord && (
             <Alert
-              message={alertRecord.is_sms_sent ? "📱 SMS Alert Sent" : "📱 SMS Alert Pending"}
+              message={alertRecord.is_sms_sent ? "SMS Alert Sent" : "SMS Alert Pending"}
               description={alertRecord.is_sms_sent ? "Critical alert message has been sent to your mobile." : "SMS is being sent to notify you of this critical condition."}
               type={alertRecord.is_sms_sent ? "success" : "info"}
               showIcon
-              style={{ marginBottom: 16 }}
+              className="mb-16"
             />
           )}
         </>

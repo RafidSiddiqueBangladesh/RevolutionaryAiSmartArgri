@@ -16,7 +16,7 @@ AgriSense is a comprehensive agricultural technology platform designed to help f
 
 ```
 AgriSense/
-├── backend/                 # Node.js Express API
+├── backend/                 # Node.js Express APIs
 │   ├── config/
 │   ├── controllers/
 │   ├── middleware/

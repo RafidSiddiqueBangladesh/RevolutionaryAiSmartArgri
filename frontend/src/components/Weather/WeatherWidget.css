@@ -1,7 +1,7 @@
 .weather-widget {
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--white);
+  border-radius: var(--card-radius-sm);
+  box-shadow: var(--shadow-sm);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -9,17 +9,17 @@
 .weather-loading, .weather-error {
   padding: 20px;
   text-align: center;
-  color: #666;
+  color: var(--gray-medium);
 }
 
 .weather-error {
-  color: #e74c3c;
+  color: var(--error-color);
 }
 
 .current-weather h3, .weather-forecast h3 {
   margin-top: 0;
   margin-bottom: 15px;
-  color: #333;
+  color: var(--gray-dark);
   font-size: 1.2rem;
 }
 
@@ -41,20 +41,20 @@
 .temperature {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #333;
+  color: var(--gray-dark);
   line-height: 1;
 }
 
 .description {
   text-transform: capitalize;
-  color: #666;
+  color: var(--gray-medium);
   margin-top: 5px;
 }
 
 .weather-details {
   display: flex;
   justify-content: space-between;
-  background-color: #f8f9fa;
+  background-color: var(--gray-light);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 15px;
@@ -68,13 +68,13 @@
 
 .label {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--gray-medium);
   margin-bottom: 5px;
 }
 
 .value {
   font-weight: bold;
-  color: #333;
+  color: var(--gray-dark);
 }
 
 .weather-forecast h3 {
@@ -97,7 +97,7 @@
 
 .forecast-date {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--gray-medium);
   margin-bottom: 5px;
 }
 
@@ -114,11 +114,11 @@
 
 .max {
   font-weight: bold;
-  color: #333;
+  color: var(--gray-dark);
 }
 
 .min {
-  color: #666;
+  color: var(--gray-medium);
 }
 
 @media (max-width: 768px) {

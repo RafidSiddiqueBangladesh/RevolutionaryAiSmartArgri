@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Droplets } from 'lucide-react';
 
 const SensorOverview = ({ user }) => {
   const [sensorData, setSensorData] = useState([]);
@@ -30,23 +31,23 @@ const SensorOverview = ({ user }) => {
   };
 
   const getMoistureStatus = (moisture) => {
-    if (moisture >= 85) return { text: 'Very Wet', color: '#007bff', icon: '💦' };
-    if (moisture >= 65) return { text: 'Wet', color: '#17a2b8', icon: '💧' };
-    if (moisture >= 45) return { text: 'Optimal', color: '#28a745', icon: '✅' };
-    if (moisture >= 25) return { text: 'Dry', color: '#ffc107', icon: '⚠️' };
-    return { text: 'Very Dry', color: '#dc3545', icon: '🔥' };
+    if (moisture >= 85) return { text: 'Very Wet', level: 'very-wet' };
+    if (moisture >= 65) return { text: 'Wet', level: 'wet' };
+    if (moisture >= 45) return { text: 'Optimal', level: 'optimal' };
+    if (moisture >= 25) return { text: 'Dry', level: 'dry' };
+    return { text: 'Very Dry', level: 'very-dry' };
   };
 
   const getPhStatus = (ph) => {
-    if (ph < 6.0) return { text: 'Acidic', color: '#dc3545' };
-    if (ph > 8.0) return { text: 'Alkaline', color: '#ffc107' };
-    return { text: 'Optimal', color: '#28a745' };
+    if (ph < 6.0) return { text: 'Acidic', level: 'bad' };
+    if (ph > 8.0) return { text: 'Alkaline', level: 'warn' };
+    return { text: 'Optimal', level: 'good' };
   };
 
   const getTempStatus = (temp) => {
-    if (temp < 18) return { text: 'Cold', color: '#007bff' };
-    if (temp > 30) return { text: 'Hot', color: '#dc3545' };
-    return { text: 'Good', color: '#28a745' };
+    if (temp < 18) return { text: 'Cold', level: 'info' };
+    if (temp > 30) return { text: 'Hot', level: 'bad' };
+    return { text: 'Good', level: 'good' };
   };
 
   if (loading) {
@@ -114,13 +115,14 @@ const SensorOverview = ({ user }) => {
               <div className="sensor-metrics">
                 {/* Primary Metric - Moisture */}
                 <div className="metric-primary">
-                  <div className="metric-icon">{moistureStatus.icon}</div>
+                  <div className="metric-icon">
+                    <Droplets aria-hidden="true" />
+                  </div>
                   <div className="metric-content">
                     <div className="metric-value">{sensor.moisture_level}%</div>
                     <div className="metric-label">Soil Moisture</div>
-                    <div 
-                      className="metric-status"
-                      style={{ color: moistureStatus.color }}
+                    <div
+                      className={`metric-status status-${moistureStatus.level}`}
                     >
                       {moistureStatus.text}
                     </div>
@@ -132,9 +134,8 @@ const SensorOverview = ({ user }) => {
                   <div className="metric-item">
                     <span className="metric-small-label">pH Level</span>
                     <span className="metric-small-value">{sensor.ph_level}</span>
-                    <span 
-                      className="metric-small-status"
-                      style={{ color: phStatus.color }}
+                    <span
+                      className={`metric-small-status status-${phStatus.level}`}
                     >
                       {phStatus.text}
                     </span>
@@ -143,9 +144,8 @@ const SensorOverview = ({ user }) => {
                   <div className="metric-item">
                     <span className="metric-small-label">Temperature</span>
                     <span className="metric-small-value">{sensor.temperature}°C</span>
-                    <span 
-                      className="metric-small-status"
-                      style={{ color: tempStatus.color }}
+                    <span
+                      className={`metric-small-status status-${tempStatus.level}`}
                     >
                       {tempStatus.text}
                     </span>
@@ -166,12 +166,9 @@ const SensorOverview = ({ user }) => {
               {/* Progress Bar for Moisture */}
               <div className="moisture-progress">
                 <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ 
-                      width: `${sensor.moisture_level}%`,
-                      backgroundColor: moistureStatus.color
-                    }}
+                  <div
+                    className={`progress-fill bg-${moistureStatus.level}`}
+                    style={{ width: `${sensor.moisture_level}%` }}
                   ></div>
                 </div>
                 <div className="progress-labels">

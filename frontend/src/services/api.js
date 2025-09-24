@@ -23,7 +23,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || '';
+
+    // If weather endpoint returns 401, don't log out user — backend likely missing external API key
+    if (status === 401 && requestUrl.includes('/weather')) {
+      // Provide a clearer error for weather components to display
+      const weatherErr = new Error('Weather service unavailable (unauthorized).');
+      weatherErr.status = 401;
+      return Promise.reject(weatherErr);
+    }
+
+    if (status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/';

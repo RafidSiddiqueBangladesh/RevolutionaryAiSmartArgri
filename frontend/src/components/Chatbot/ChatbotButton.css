@@ -39,10 +39,10 @@
 
 /* Icon */
 .chatbot-fab-icon {
-  font-size: 24px;
   transition: all 0.3s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
+.chatbot-fab-icon svg { width: 24px; height: 24px; color: var(--white); }
 
 /* Notification Dot */
 .notification-dot {
@@ -157,31 +157,36 @@
 }
 
 /* Mobile Responsive */
+@media (max-width: 1024px) {
+  /* Ensure mobile sidebar can overlay the FAB */
+  .chatbot-button-container { z-index: 900; }
+}
+
 @media (max-width: 768px) {
   .chatbot-button-container {
     bottom: 20px;
     right: 20px;
   }
-  
+
   .chatbot-fab {
     width: 56px;
     height: 56px;
   }
-  
+
   .chatbot-fab-icon {
     font-size: 22px;
   }
-  
+
   .tooltip-content {
     font-size: 12px;
     padding: 10px 14px;
     min-width: 180px;
   }
-  
+
   .tooltip-content strong {
     font-size: 12px;
   }
-  
+
   .tooltip-content span {
     font-size: 11px;
   }

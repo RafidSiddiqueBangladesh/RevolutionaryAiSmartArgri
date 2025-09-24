@@ -3,25 +3,19 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
 import Dashboard from './components/Dashboard/Dashboard';
+import { ConfigProvider, App as AntdApp } from 'antd';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#666'
-      }}>
+      <div className="fullscreen-center">
         Loading...
       </div>
     );
   }
-  
+
   return isAuthenticated ? children : <Navigate to="/" replace />;
 };
 
@@ -30,19 +24,12 @@ const PublicRoute = ({ children }) => {
   
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#666'
-      }}>
+      <div className="fullscreen-center">
         Loading...
       </div>
     );
   }
-  
+
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
 };
 
@@ -73,9 +60,28 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ConfigProvider
+        theme={{
+          token: {
+            colorPrimary: '#1f7a4d',
+            colorInfo: '#1f7a4d',
+            colorSuccess: '#2fa56e',
+            borderRadius: 12,
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+            colorTextHeading: '#1f7a4d'
+          },
+          components: {
+            Button: { borderRadius: 6 },
+            Card: { borderRadius: 16 }
+          }
+        }}
+      >
+        <AntdApp>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AntdApp>
+      </ConfigProvider>
     </AuthProvider>
   );
 }

@@ -284,7 +284,7 @@ const Signup = ({ onSwitchToLogin }) => {
 
         <div className="form-group">
           <label>Farm Location (for weather updates)</label>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+          <div className="location-controls">
             <button
               type="button"
               onClick={getLocation}
@@ -304,35 +304,20 @@ const Signup = ({ onSwitchToLogin }) => {
           </div>
           
           {locationError && (
-            <div style={{ 
-              color: '#dc3545', 
-              fontSize: '14px', 
-              marginBottom: '10px',
-              padding: '8px',
-              background: '#f8d7da',
-              border: '1px solid #f5c6cb',
-              borderRadius: '4px'
-            }}>
+            <div className="error-message mb-10">
               {locationError}
             </div>
           )}
           
           {locationData.latitude && (
-            <div style={{ 
-              color: '#155724', 
-              fontSize: '14px',
-              padding: '8px',
-              background: '#d4edda',
-              border: '1px solid #c3e6cb',
-              borderRadius: '4px'
-            }}>
+            <div className="success-message">
               <strong>Location:</strong> {locationData.address}
               <br />
               <small>Lat: {locationData.latitude.toFixed(6)}, Lng: {locationData.longitude.toFixed(6)}</small>
             </div>
           )}
           
-          <small style={{ color: '#666', fontSize: '12px' }}>
+          <small className="form-hint">
             We use your location to provide accurate weather forecasts and farming recommendations.
           </small>
         </div>

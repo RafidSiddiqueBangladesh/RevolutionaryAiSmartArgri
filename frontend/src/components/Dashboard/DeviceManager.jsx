@@ -67,12 +67,12 @@ const DeviceManager = ({ user }) => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusClass = (status) => {
     switch (status) {
-      case 'Online': return '#28a745';
-      case 'Recently Active': return '#ffc107';
-      case 'Offline': return '#dc3545';
-      default: return '#6c757d';
+      case 'Online': return 'status-online';
+      case 'Recently Active': return 'status-recently-active';
+      case 'Offline': return 'status-offline';
+      default: return 'status-unknown';
     }
   };
 
@@ -140,9 +140,8 @@ const DeviceManager = ({ user }) => {
                   <span className="api-key">
                     API: {device.device_api_key.substring(0, 8)}...
                   </span>
-                  <span 
-                    className="device-status"
-                    style={{ color: getStatusColor(device.status) }}
+                  <span
+                    className={`device-status ${getStatusClass(device.status)}`}
                   >
                     ● {device.status}
                   </span>

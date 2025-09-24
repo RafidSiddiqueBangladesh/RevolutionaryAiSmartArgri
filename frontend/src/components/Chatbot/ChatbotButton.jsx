@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ChatbotButton.css';
+import { MessageSquare, Bot } from 'lucide-react';
 
 const ChatbotButton = ({ onClick, hasNewMessage = false }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -13,8 +14,8 @@ const ChatbotButton = ({ onClick, hasNewMessage = false }) => {
         onMouseLeave={() => setIsHovered(false)}
         aria-label="Open AgriSense AI Chat"
       >
-        <div className="chatbot-fab-icon">
-          {isHovered ? '💬' : '🌾'}
+        <div className="chatbot-fab-icon" aria-hidden="true">
+          {isHovered ? <MessageSquare /> : <Bot />}
         </div>
         {hasNewMessage && <div className="notification-dot"></div>}
       </button>
