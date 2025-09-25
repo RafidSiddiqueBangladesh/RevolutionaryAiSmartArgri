@@ -1,6 +1,7 @@
 const express = require('express');
 const { handleConversationWebhook } = require('../services/retellService');
 const { authenticateToken } = require('../middleware/auth');
+const { body } = require('express-validator');
 
 const router = express.Router();
 
@@ -69,7 +70,7 @@ router.post('/get-farmer-data', async (req, res) => {
       const supabase = require('../config/database');
       const { data: productRows } = await supabase
         .from('products')
-        .select('id, product_name, unit_price, unit, description, is_active, created_at, updated_at')
+        .select('id, product_name, unit_price, unit')
         .eq('user_id', farmer.id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -114,6 +115,116 @@ router.post('/get-farmer-data', async (req, res) => {
       success: false,
       message: "Error retrieving combined farm data"
     });
+  }
+});
+
+/**
+ * Create a product listing for a farmer by phone number (no auth, e.g. via voice bot)
+ * Body params:
+ * - phone_number (string): Farmer's phone number (formats accepted: '+8801XXXXXXXXX', '8801XXXXXXXXX', '01XXXXXXXXX')
+ * - product_name (string, 2-120)
+ * - unit_price (number, >= 0)
+ * - unit (string, one of: 'kg','mon','quintal','ton')
+ * - description (string, optional, <= 1000)
+ */
+router.post('/add-product-by-phone', [
+], async (req, res) => {
+  try {
+    const phone_number = req.body.phone_number || req.body.phoneNumber || req.body.number;
+    const { product_name, unit_price, unit, description } = req.body;
+
+    if (!phone_number) {
+      return res.status(400).json({ success: false, message: 'phone_number is required' });
+    }
+    if (!product_name || String(product_name).trim().length < 2) {
+      return res.status(400).json({ success: false, message: 'product_name must be at least 2 characters' });
+    }
+    const priceNum = Number(unit_price);
+    if (!Number.isFinite(priceNum) || priceNum < 0) {
+      return res.status(400).json({ success: false, message: 'unit_price must be a non-negative number' });
+    }
+    const allowedUnits = ['kg','mon','quintal','ton'];
+    if (!allowedUnits.includes(String(unit))) {
+      return res.status(400).json({ success: false, message: `unit must be one of ${allowedUnits.join(', ')}` });
+    }
+
+    const { getFarmerByPhoneNumber } = require('../services/retellService');
+    const farmer = await getFarmerByPhoneNumber(phone_number);
+    if (!farmer) {
+      return res.status(404).json({ success: false, message: 'Farmer not found' });
+    }
+
+    const supabase = require('../config/database');
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        user_id: farmer.id,
+        product_name: product_name.trim(),
+        unit_price: priceNum,
+        unit: unit,
+        description: description ? String(description).slice(0, 1000) : null,
+        is_active: true
+      })
+      .select('id, product_name, unit_price, unit')
+      .single();
+    if (error) {
+      return res.status(500).json({ success: false, message: 'Failed to create product' });
+    }
+
+    return res.status(201).json({ success: true, product: data });
+  } catch (e) {
+    console.error('add-product-by-phone error:', e);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+/**
+ * Delete a product by id for a farmer identified by phone number (safety: ensures ownership)
+ * Body params:
+ * - phone_number (string): Farmer's phone number
+ * - product_id (uuid string): Product id to delete
+ */
+router.post('/delete-product-by-phone', async (req, res) => {
+  try {
+    const phone_number = req.body.phone_number || req.body.phoneNumber || req.body.number;
+    const product_id = req.body.product_id || req.body.productId || req.body.id;
+
+    if (!phone_number) {
+      return res.status(400).json({ success: false, message: 'phone_number is required' });
+    }
+    if (!product_id) {
+      return res.status(400).json({ success: false, message: 'product_id is required' });
+    }
+
+    const { getFarmerByPhoneNumber } = require('../services/retellService');
+    const farmer = await getFarmerByPhoneNumber(phone_number);
+    if (!farmer) {
+      return res.status(404).json({ success: false, message: 'Farmer not found' });
+    }
+
+    const supabase = require('../config/database');
+    // Verify ownership first
+    const { data: existing, error: findErr } = await supabase
+      .from('products')
+      .select('id, user_id')
+      .eq('id', product_id)
+      .single();
+    if (findErr || !existing || existing.user_id !== farmer.id) {
+      return res.status(403).json({ success: false, message: 'Access denied or product not found' });
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', product_id);
+    if (error) {
+      return res.status(500).json({ success: false, message: 'Failed to delete product' });
+    }
+
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('delete-product-by-phone error:', e);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 

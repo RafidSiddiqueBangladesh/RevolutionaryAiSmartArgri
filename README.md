@@ -1,16 +1,17 @@
 # 🌾 AgriSense - Smart Farming Platform
 
-AgriSense is a comprehensive agricultural technology platform designed to help farmers in Bangladesh make data-driven decisions using IoT sensors, AI recommendations, and real-time monitoring.
+AgriSense is an end‑to‑end precision agriculture platform for farmers in Bangladesh. It combines low‑cost IoT devices (ESP32), real‑time dashboards, AI analytics, weather data, SMS/voice alerts, and market pricing to deliver actionable insights.
 
 ## Features
 
-- **Role-based Authentication**: Separate access for farmers and administrators
-- **Smart Dashboard**: Real-time monitoring of soil conditions and crop health
-- **AI Recommendations**: Intelligent suggestions for irrigation, nutrients, and crop care
-- **Multi-channel Communication**: Web dashboard, SMS alerts, and voice support
-- **Weather Integration**: Location-based weather forecasts and alerts
-- **Knowledge Sharing**: Farmer-to-farmer experience sharing platform
-- **Market Price Updates**: Real-time crop price information
+- **Role-based Authentication**: JWT with farmer/admin roles
+- **IoT Device Linking**: Link devices by 32‑char device API key
+- **Live Monitoring**: Current sensor snapshot and historical trends
+- **AI Analytics**: Bengali advisory, strict JSON outputs for reports
+- **Weather Integration**: Current + forecast with internal token bypass
+- **Alerts**: SMS and optional voice calls for critical events
+- **Chatbot**: Context‑aware OpenAI chatbot (Bengali)
+- **Market & Products**: Prices and farmer product listings
 
 ## Project Structure
 
@@ -21,139 +22,161 @@ AgriSense/
 │   ├── controllers/
 │   ├── middleware/
 │   ├── routes/
+│   ├── services/
 │   └── server.js
-├── frontend/                # React Application
+├── frontend/                # React + Vite app
 │   ├── src/
 │   │   ├── components/
 │   │   ├── context/
 │   │   ├── services/
 │   │   └── App.jsx
 │   └── package.json
-├── database_schema.sql      # Supabase database schema
+├── esp32_agrisense_complete.ino  # ESP32 firmware
 └── README.md
 ```
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Node.js, Express.js, JWT Authentication
-- **Frontend**: React, Vite, React Router
+- **Backend**: Node.js, Express, node-cron, Supabase JS
+- **Frontend**: React, Vite, Axios
 - **Database**: Supabase (PostgreSQL)
-- **Authentication**: JWT + bcryptjs
-- **Styling**: Custom CSS with modern design
+- **AI**: OpenAI (GPT‑4.1, GPT‑4o/4o‑mini)
+- **Telephony**: Retell AI (optional outbound calls)
+- **Auth**: JWT + bcryptjs
 
 ## 📋 Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Supabase account
+- Node.js ≥ 18
+- npm (or yarn/pnpm)
+- Supabase project (URL + Service Role key)
+- OpenAI API key
+- Optional: Retell AI account and phone number
 
-## ⚙️ Installation & Setup
+## ⚙️ Local Setup
 
-### 1. Clone the Repository
+### 1) Clone
 ```bash
 git clone <repository-url>
-cd AgriSense
+cd Agrisense
 ```
 
-### 2. Database Setup (Supabase)
-
-1. Create a new project in [Supabase](https://supabase.com)
-2. Go to the SQL Editor in your Supabase dashboard
-3. Copy and paste the contents of `database_schema.sql`
-4. Run the SQL commands to create tables and insert initial data
-
-### 3. Backend Setup
-
+### 2) Backend
 ```bash
 cd backend
 npm install
+cp .env.example .env
+# Then fill values in backend/.env
 ```
 
-Create a `.env` file in the backend directory:
-```env
-PORT=5000
-JWT_SECRET=your_super_secret_jwt_key_here
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+Required environment variables (see `.env.example`):
+
+- `PORT` (default 5000)
+- `JWT_SECRET` (long random string)
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`
+- `OPENAI_API_KEY`
+- `WEATHER_API_KEY` (if using external weather provider)
+- `INTERNAL_API_TOKEN` (random secret for internal service calls)
+- Optional Retell: `RETELL_API_KEY`, `RETELL_AGENT_ID`, `RETELL_PHONE_NUMBER`
+- `AGRISENSE_BACKEND_URL` (public base URL when deployed)
+
+Start the API:
+```bash
+npm run dev
+# API at http://localhost:5000
 ```
 
-### 4. Frontend Setup
-
+### 3) Frontend
 ```bash
 cd ../frontend
 npm install
-```
-
-### 5. Run the Application
-
-Start the backend server:
-```bash
-cd backend
+cp .env.example .env
+# Then set VITE_API_BASE_URL (e.g. http://localhost:5000/api)
 npm run dev
+# App at http://localhost:5173
 ```
 
-In a new terminal, start the frontend:
-```bash
-cd frontend
-npm run dev
-```
+## 🗄️ Database (Supabase)
 
-The application will be available at:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
+1. Create a Supabase project
+2. In SQL Editor, create tables according to your schema (users, devices, current_sensor_data, sensor_data_history, products, etc.)
+3. Get `SUPABASE_URL`, `SERVICE_ROLE_KEY`, and `ANON_KEY` from Project Settings → API
 
 ## 🔐 Authentication
 
-### Default Admin Account
-- **Mobile**: 01700000000
-- **Password**: admin123
+- JWT issued on login and verified on each request
+- Use `Authorization: Bearer <token>` in frontend requests
+- Role checks supported (e.g., admin‑only routes)
 
-*Change this password in production!*
+## 📡 IoT Device Data Flow
 
-### Farmer Registration
-Farmers can sign up by providing:
-- Full Name
-- Mobile Number (Bangladeshi format: 01XXXXXXXXX)
-- Crop Name
-- District (from 64 districts of Bangladesh)
+1. Admin registers devices with generated 32‑char `device_api_key`
+2. Farmer links device in dashboard using the API key
+3. ESP32 posts JSON to backend ingestion URL:
 
-##  Usage
+```json
+{
+  "apiKey": "<DEVICE_API_KEY>",
+  "moistureLevel": 52.3
+}
+```
 
-1. **Login/Signup**: Access the authentication page
-2. **Dashboard**: View personalized dashboard based on user role
-3. **Farmer Dashboard**: Monitor crop data, receive recommendations
-4. **Admin Dashboard**: Overview of all farmers and system-wide data
+- Endpoint upserts to `current_sensor_data`, appends to `sensor_data_history`, and updates device `last_seen`
+- Non‑moisture metrics may be mocked if not sent by firmware (configurable in code)
 
-## Upcoming Features
+## 🤖 AI & Analytics
 
-- IoT sensor integration (soil moisture, pH, temperature)
-- AI-powered crop recommendations
-- SMS notification system
-- Voice chat with AI assistant
-- Weather API integration
-- Market price tracking
-- Knowledge sharing platform
-- Mobile app (React Native)
+- OpenAI used for Bengali analytics and chatbot; responses are validated as JSON where required
+- Scheduled jobs (node‑cron):
+  - Daily analytics: 07:00 Asia/Dhaka
+  - Moisture checks: every 2 hours (SMS/voice alerts)
 
-## API Endpoints
+## ☁️ Deployment
 
-### Authentication
-- `POST /api/auth/signup` - Farmer registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/profile` - Get user profile
-- `GET /api/auth/districts` - Get all districts
+You can deploy on Render/Railway/Heroku (backend) and Netlify/Vercel (frontend).
 
-## Contributing
+Backend notes:
+- Set all environment variables exactly as in `backend/.env.example`
+- Expose `AGRISENSE_BACKEND_URL` (e.g., `https://yourapp.onrender.com`)
+- Ensure webhook/voice routes are reachable publicly if using Retell
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+Frontend notes:
+- Set `VITE_API_BASE_URL` to your public backend `.../api` URL
+- Rebuild after changes to env vars
+
+## 🔧 Environment Variables
+
+Complete examples are in:
+- `backend/.env.example`
+- `frontend/.env.example`
+
+Never commit real secrets. Rotate any leaked keys immediately.
+
+## 📬 API Overview (selected)
+
+- `POST /api/auth/signup`, `POST /api/auth/login`, `GET /api/auth/profile`
+- `POST /api/device/link`, `GET /api/device/my-devices`
+- `POST /api/device/sensor-data` (ingestion by ESP32)
+- `GET /api/analytics/...`, `GET /api/weather/...`
+- `POST /api/voice/get-farmer-data`, `POST /api/voice/add-product-by-phone` (unauth endpoints for voice function)
+
+## 🧪 Running Locally
+
+```bash
+# terminal 1
+cd backend && npm run dev
+
+# terminal 2
+cd frontend && npm run dev
+```
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create a branch: `git checkout -b feature/your-change`
+3. Commit: `git commit -m "feat: your change"`
+4. Push: `git push origin feature/your-change`
 5. Open a Pull Request
 
-
-## 👥 Team
+## 👥 Authors
 
 Ginger
-

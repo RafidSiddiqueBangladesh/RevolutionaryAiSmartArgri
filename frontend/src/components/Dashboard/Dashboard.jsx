@@ -10,7 +10,7 @@ import AdminDashboard from './AdminDashboard';
 import AdminPrices from './AdminPrices';
 import SellPage from './Sell/SellPage';
 import FarmerPrices from './FarmerPrices';
-import { Sprout, LayoutDashboard, Cpu, BarChart3, User, Phone, BadgeCheck, Leaf, MapPin, Ruler, Menu, X } from 'lucide-react';
+import { Sprout, LayoutDashboard, Cpu, BarChart3, User, Phone, BadgeCheck, Leaf, MapPin, Ruler, Menu, X, Banknote, ShoppingCart } from 'lucide-react';
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -184,14 +184,14 @@ const Dashboard = () => {
                 className={`tab-btn ${activeTab === 'prices' ? 'active' : ''}`}
                 onClick={() => setActiveTab('prices')}
               >
-                <BarChart3 className="tab-icon" aria-hidden="true" />
+                <Banknote className="tab-icon" aria-hidden="true" />
                 Prices
               </button>
               <button
                 className={`tab-btn ${activeTab === 'sell' ? 'active' : ''}`}
                 onClick={() => setActiveTab('sell')}
               >
-                <BarChart3 className="tab-icon" aria-hidden="true" />
+                <ShoppingCart className="tab-icon" aria-hidden="true" />
                 Sell
               </button>
             </div>
@@ -211,7 +211,7 @@ const Dashboard = () => {
                 className={`tab-btn ${activeTab === 'prices' ? 'active' : ''}`}
                 onClick={() => setActiveTab('prices')}
               >
-                <BarChart3 className="tab-icon" aria-hidden="true" />
+                <Banknote className="tab-icon" aria-hidden="true" />
                 Prices
               </button>
             </div>
