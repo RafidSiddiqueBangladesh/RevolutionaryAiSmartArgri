@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
+import LandingPage from './components/Landing/LandingPage';
 import Dashboard from './components/Dashboard/Dashboard';
 import { ConfigProvider, App as AntdApp } from 'antd';
 
@@ -36,8 +37,9 @@ const PublicRoute = ({ children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route 
-        path="/" 
+        path="/login" 
         element={
           <PublicRoute>
             <AuthPage />

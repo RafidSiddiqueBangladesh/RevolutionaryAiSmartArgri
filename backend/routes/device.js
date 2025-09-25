@@ -37,6 +37,12 @@ router.post('/link', authenticateToken, linkDeviceValidation, linkDevice);
 router.get('/my-devices', authenticateToken, getUserDevices);
 router.delete('/:deviceId/unlink', authenticateToken, unlinkDevice);
 router.get('/sensor-data', authenticateToken, getSensorData);
+// Optimal ranges saved per farmer
+const deviceController = require('../controllers/deviceController');
+router.get('/optimal-settings', authenticateToken, deviceController.getOptimalSettings);
+router.get('/optimal-settings/history', authenticateToken, deviceController.getOptimalSettingsHistory);
+// Sensor history for charting
+router.get('/sensor-history', authenticateToken, deviceController.getSensorHistory);
 
 // Public routes (for ESP32 devices)
 router.post('/sensor-data', sensorDataValidation, receiveSensorData);

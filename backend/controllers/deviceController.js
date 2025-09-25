@@ -64,61 +64,78 @@ const getUserDevices = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Prefer the database view for consolidated device + sensor snapshot
     const { data: devices, error } = await supabase
-      .from('devices')
-      .select('id, device_api_key, device_name, user_id, is_active, last_seen, created_at, updated_at')
+      .from('device_dashboard')
+      .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('last_seen', { ascending: false });
 
     if (error) {
       console.error('Database error:', error);
       return res.status(500).json({ error: 'Failed to fetch devices' });
     }
 
-    // Fetch current sensor readings for these devices
-    const deviceIds = (devices || []).map(d => d.id);
-    let readingsByDeviceId = {};
-    if (deviceIds.length > 0) {
-      const { data: readings } = await supabase
-        .from('current_sensor_data')
-        .select('*')
-        .in('device_id', deviceIds);
-      readingsByDeviceId = (readings || []).reduce((acc, r) => {
-        acc[r.device_id] = r;
-        return acc;
-      }, {});
-    }
-
-    // Normalize payload to match existing frontend expectations
+    // Normalize from view (and backfill status if view doesn't provide it)
     const now = Date.now();
-    const normalized = (devices || []).map(d => {
-      const r = readingsByDeviceId[d.id];
+    let normalized = (devices || []).map(d => {
       const lastSeenMs = d.last_seen ? new Date(d.last_seen).getTime() : 0;
-      let status = 'Offline';
+      let derivedStatus = 'Offline';
       if (lastSeenMs) {
         const diffMin = (now - lastSeenMs) / 60000;
-        if (diffMin <= 5) status = 'Online';
-        else if (diffMin <= 1440) status = 'Recently Active';
+        if (diffMin <= 5) derivedStatus = 'Online';
+        else if (diffMin <= 1440) derivedStatus = 'Recently Active';
       }
       return {
-        device_id: d.id,
+        device_id: d.device_id || d.id,
         device_name: d.device_name || 'Unnamed Device',
         device_api_key: d.device_api_key,
-        status,
+        status: d.status || derivedStatus,
         last_seen: d.last_seen,
-        // Sensor snapshot fields used by UI
-        moisture_level: r?.moisture_level ?? null,
-        ph_level: r?.ph_level ?? null,
-        temperature: r?.temperature ?? null,
-        humidity: r?.humidity ?? null,
-        light_intensity: r?.light_intensity ?? null,
-        soil_conductivity: r?.soil_conductivity ?? null,
-        nitrogen_level: r?.nitrogen_level ?? null,
-        phosphorus_level: r?.phosphorus_level ?? null,
-        potassium_level: r?.potassium_level ?? null,
-        sensor_last_updated: r?.last_updated ?? null
+        moisture_level: d.moisture_level ?? null,
+        ph_level: d.ph_level ?? null,
+        temperature: d.temperature ?? null,
+        humidity: d.humidity ?? null,
+        light_intensity: d.light_intensity ?? null,
+        soil_conductivity: d.soil_conductivity ?? null,
+        nitrogen_level: d.nitrogen_level ?? null,
+        phosphorus_level: d.phosphorus_level ?? null,
+        potassium_level: d.potassium_level ?? null,
+        sensor_last_updated: d.sensor_last_updated ?? d.last_updated ?? null
       };
     });
+
+    // Fallback: if some devices have no readings from the view, fetch directly from current_sensor_data
+    const missingIds = normalized
+      .filter(x => x.moisture_level === null && x.ph_level === null && x.temperature === null && x.humidity === null)
+      .map(x => x.device_id);
+
+    if (missingIds.length > 0) {
+      const { data: directReadings } = await supabase
+        .from('current_sensor_data')
+        .select('*')
+        .in('device_id', missingIds);
+      const byId = (directReadings || []).reduce((acc, r) => { acc[r.device_id] = r; return acc; }, {});
+      normalized = normalized.map(x => {
+        if (byId[x.device_id]) {
+          const r = byId[x.device_id];
+          return {
+            ...x,
+            moisture_level: r.moisture_level ?? x.moisture_level,
+            ph_level: r.ph_level ?? x.ph_level,
+            temperature: r.temperature ?? x.temperature,
+            humidity: r.humidity ?? x.humidity,
+            light_intensity: r.light_intensity ?? x.light_intensity,
+            soil_conductivity: r.soil_conductivity ?? x.soil_conductivity,
+            nitrogen_level: r.nitrogen_level ?? x.nitrogen_level,
+            phosphorus_level: r.phosphorus_level ?? x.phosphorus_level,
+            potassium_level: r.potassium_level ?? x.potassium_level,
+            sensor_last_updated: r.last_updated ?? x.sensor_last_updated
+          };
+        }
+        return x;
+      });
+    }
 
     res.json({ devices: normalized });
   } catch (error) {
@@ -208,6 +225,34 @@ const receiveSensorData = async (req, res) => {
       return res.status(500).json({ error: 'Failed to store sensor data' });
     }
 
+    // Also persist to history table if present
+    try {
+      const historyPayload = {
+        device_id: device.id,
+        user_id: device.user_id,
+        moisture_level: Number(sensorData.moisture_level),
+        ph_level: Number(sensorData.ph_level),
+        temperature: Number(sensorData.temperature),
+        humidity: Number(sensorData.humidity),
+        light_intensity: Number(sensorData.light_intensity),
+        soil_conductivity: Number(sensorData.soil_conductivity),
+        nitrogen_level: Number(sensorData.nitrogen_level),
+        phosphorus_level: Number(sensorData.phosphorus_level),
+        potassium_level: Number(sensorData.potassium_level),
+        recorded_at: sensorData.last_updated || new Date().toISOString()
+      };
+      const { error: histErr } = await supabase
+        .from('sensor_data_history')
+        .insert(historyPayload);
+      if (histErr) {
+        console.warn('sensor_data_history insert failed:', histErr.message, 'payload:', historyPayload);
+      } else {
+        console.log('sensor_data_history insert ok for device', device.id);
+      }
+    } catch (e) {
+      console.warn('sensor_data_history insert exception:', e.message);
+    }
+
     // Update device last seen
     await supabase
       .from('devices')
@@ -254,6 +299,63 @@ const getSensorData = async (req, res) => {
   }
 };
 
+// Get sensor readings history for a device (from sensor_data_history)
+const getSensorHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { deviceId, limit = 100, range, from, to } = req.query;
+    if (!deviceId) {
+      return res.status(400).json({ error: 'deviceId is required' });
+    }
+
+    // Verify device ownership (admins can access any device)
+    const { data: device, error: devErr } = await supabase
+      .from('devices')
+      .select('id, user_id')
+      .eq('id', deviceId)
+      .single();
+    const isAdmin = req.user?.role === 'admin';
+    if (devErr || !device || (!isAdmin && device.user_id !== userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const lim = Math.min(parseInt(limit, 10) || 100, 5000);
+    let query = supabase
+      .from('sensor_data_history')
+      .select('*')
+      .eq('device_id', deviceId);
+
+    // Time range filter
+    const now = Date.now();
+    let startIso = null;
+    if (from) {
+      startIso = new Date(from).toISOString();
+    } else if (range) {
+      const unit = String(range).toLowerCase();
+      let ms = 0;
+      if (unit === '1h') ms = 60 * 60 * 1000;
+      else if (unit === '1d') ms = 24 * 60 * 60 * 1000;
+      else if (unit === '1w') ms = 7 * 24 * 60 * 60 * 1000;
+      else if (unit === '1m') ms = 30 * 24 * 60 * 60 * 1000;
+      else if (unit === '1y') ms = 365 * 24 * 60 * 60 * 1000;
+      if (ms > 0) startIso = new Date(now - ms).toISOString();
+    }
+    if (startIso) query = query.gte('recorded_at', startIso);
+    if (to) query = query.lte('recorded_at', new Date(to).toISOString());
+
+    const { data, error } = await query
+      .order('recorded_at', { ascending: false })
+      .limit(lim);
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch sensor history' });
+    }
+    return res.json({ success: true, data });
+  } catch (e) {
+    console.error('Get sensor history error:', e);
+    return res.status(500).json({ error: 'Failed to fetch sensor history' });
+  }
+};
+
 // Generate mock sensor data
 function generateMockSensorData() {
   return {
@@ -273,5 +375,44 @@ module.exports = {
   getUserDevices,
   unlinkDevice,
   receiveSensorData,
-  getSensorData
+  getSensorData,
+  getSensorHistory,
+  // Return saved optimal settings for the authenticated farmer
+  async getOptimalSettings(req, res) {
+    try {
+      const userId = req.user.id;
+      const { data, error } = await supabase
+        .from('farmer_optimal_settings')
+        .select('optimal_json, updated_at, crop_name')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        return res.json({ success: true, data: null });
+      }
+
+      return res.json({ success: true, data: data });
+    } catch (e) {
+      console.error('Get optimal settings error:', e);
+      return res.status(500).json({ error: 'Failed to fetch optimal settings' });
+    }
+  },
+  // Return optimal settings history if the history table exists
+  async getOptimalSettingsHistory(req, res) {
+    try {
+      const userId = req.user.id;
+      const limit = Math.min(parseInt(req.query.limit || '100', 10), 500);
+      const { data, error } = await supabase
+        .from('farmer_optimal_settings_history')
+        .select('optimal_json, created_at, crop_name')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) return res.status(500).json({ error: 'Failed to fetch optimal settings history' });
+      return res.json({ success: true, data });
+    } catch (e) {
+      console.error('Get optimal settings history error:', e);
+      return res.status(500).json({ error: 'Failed to fetch optimal settings history' });
+    }
+  }
 };

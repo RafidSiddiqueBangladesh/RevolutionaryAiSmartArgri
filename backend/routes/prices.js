@@ -28,6 +28,32 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/prices/public - list all crop prices (no auth)
+router.get('/public', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('crop_prices')
+      .select('crop_name, unit, price')
+      .order('crop_name', { ascending: true });
+
+    if (error) {
+      console.error('Get public prices error:', error);
+      return res.status(500).json({ error: 'Failed to fetch prices' });
+    }
+
+    const simplified = (data || []).map(p => ({
+      name: p.crop_name,
+      unit: p.unit,
+      price: p.price
+    }));
+
+    return res.json({ prices: simplified });
+  } catch (err) {
+    console.error('Public prices list error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /api/prices - create or upsert a crop price (admin)
 router.post(
   '/',

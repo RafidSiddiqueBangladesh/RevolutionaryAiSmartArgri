@@ -63,6 +63,22 @@ router.post('/get-farmer-data', async (req, res) => {
     const weather = await getCurrentWeather(farmer.latitude, farmer.longitude);
     const forecast = await getForecastWeather(farmer.latitude, farmer.longitude);
 
+    // Fetch active product listings for this farmer
+    let products = [];
+    try {
+      const supabase = require('../config/database');
+      const { data: productRows } = await supabase
+        .from('products')
+        .select('id, product_name, unit_price, unit, description, is_active, created_at, updated_at')
+        .eq('user_id', farmer.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      products = Array.isArray(productRows) ? productRows : [];
+    } catch (e) {
+      console.warn('Failed to fetch farmer products:', e?.message || e);
+      products = [];
+    }
+
     // Sanitize farmer object
     const safeFarmer = {
       full_name: farmer.full_name,
@@ -89,7 +105,8 @@ router.post('/get-farmer-data', async (req, res) => {
       farmer: safeFarmer,
       sensors,
       weather,
-      forecast: slimForecast
+      forecast: slimForecast,
+      products
     });
   } catch (error) {
     console.error('Get combined farm data error:', error);

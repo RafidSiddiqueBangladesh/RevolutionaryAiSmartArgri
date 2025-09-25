@@ -8,6 +8,42 @@ const openai = new OpenAI({
 });
 
 /**
+ * Analyze receipt image using OpenAI Vision API
+ * @param {string} base64Image - Base64 encoded image
+ * @returns {Promise<Object>} Receipt analysis results
+ */
+async function analyzeReceipt(base64Image) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "This is a receipt image. Please extract the following information in JSON format: date, vendor name, items purchased (with prices if available), total amount, and payment method." },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 1000
+    });
+
+    return {
+      success: true,
+      data: response.choices[0].message.content
+    };
+  } catch (error) {
+    console.error("OpenAI receipt analysis error:", error);
+    throw new Error(`Failed to analyze receipt: ${error.message}`);
+  }
+}
+
+/**
  * Analyze farm data using OpenAI
  * @param {Object} data - Combined data for analysis
  * @param {Object} data.weather - Weather data
@@ -218,6 +254,12 @@ async function chatResponse(farmContext, userMessage) {
     - Rainfall: ${farmContext.weather.rainfall} mm
     - Forecast: ${farmContext.weather.forecast}
     
+    ${Array.isArray(farmContext.prices) && farmContext.prices.length > 0 ? `
+    ALL CROP PRICES (Summary):
+    ${farmContext.prices.slice(0, 20).map(p => `- ${p.cropName}: ${p.price} per ${p.unit}`).join('\n')}
+    ${farmContext.prices.length > 20 ? `...and ${farmContext.prices.length - 20} more` : ''}
+    ` : ''}
+    
     ${farmContext.sensors ? `
     LIVE SENSOR DATA (Last Updated: ${farmContext.sensors.lastUpdated}):
     - Soil Moisture: ${farmContext.sensors.soilMoisture}% ${farmContext.sensors.soilMoisture < 30 ? '⚠️ LOW' : farmContext.sensors.soilMoisture > 70 ? '✅ GOOD' : '🔵 MODERATE'}
@@ -243,6 +285,7 @@ async function chatResponse(farmContext, userMessage) {
     6. If the question is about irrigation, fertilization, or crop care, use the sensor data to give specific recommendations
     7. If sensor readings indicate problems, mention them and provide solutions
     8. Keep responses concise but informative (2-4 sentences) in simple Bengali that farmers can understand
+    9. If relevant, use the market price list to answer price questions directly and to advise on harvest timing/sales decisions.
     
     EXPERTISE AREAS:
     - Soil moisture and irrigation scheduling
@@ -318,5 +361,143 @@ async function performDailyAnalysis(farmData) {
 module.exports = {
   analyzeData,
   performDailyAnalysis,
-  chatResponse
+  chatResponse,
+  analyzeReceipt,
+  // Export additional functions for image upload functionality
+  processImageUpload: analyzeReceipt,
+  
+  /**
+   * Analyze and propose optimal sensor ranges for a specific farm context
+   * Returns STRICT JSON only. Shape:
+   * {
+   *   "moisture": {"min":0,"max":100,"optimalMin":45,"optimalMax":65},
+   *   "ph": {"min":0,"max":14,"optimalMin":6.0,"optimalMax":7.5},
+   *   "temperature": {"min":0,"max":50,"optimalMin":18,"optimalMax":30},
+   *   "humidity": {"min":0,"max":100,"optimalMin":40,"optimalMax":70},
+   *   "light": {"min":0,"max":2000,"optimalMin":300,"optimalMax":800},
+   *   "conductivity": {"min":0,"max":1000,"optimalMin":200,"optimalMax":400},
+   *   "n": {"min":0,"max":100,"optimalMin":30,"optimalMax":50},
+   *   "p": {"min":0,"max":80,"optimalMin":15,"optimalMax":35},
+   *   "k": {"min":0,"max":100,"optimalMin":30,"optimalMax":60}
+   * }
+   */
+  async analyzeOptimalConditions(farmContext) {
+    const { farmer, crop, weather, sensors } = farmContext || {};
+    try {
+      const prompt = `
+You are an expert agronomist optimizing sensor thresholds for precision farming. Using the provided context (farmer region, crop, recent weather, last sensor snapshot), return STRICT JSON ONLY matching this exact schema with no extra keys or text:
+
+{
+  "moisture": {"min":0,"max":100,"optimalMin":45,"optimalMax":65},
+  "ph": {"min":0,"max":14,"optimalMin":6.0,"optimalMax":7.5},
+  "temperature": {"min":0,"max":50,"optimalMin":18,"optimalMax":30},
+  "humidity": {"min":0,"max":100,"optimalMin":40,"optimalMax":70},
+  "light": {"min":0,"max":2000,"optimalMin":300,"optimalMax":800},
+  "conductivity": {"min":0,"max":1000,"optimalMin":200,"optimalMax":400},
+  "n": {"min":0,"max":100,"optimalMin":30,"optimalMax":50},
+  "p": {"min":0,"max":80,"optimalMin":15,"optimalMax":35},
+  "k": {"min":0,"max":100,"optimalMin":30,"optimalMax":60}
+}
+
+Rules:
+- The min/max are fixed bounds as shown above and MUST be kept exactly.
+- Choose optimalMin/optimalMax tailored to crop=${crop?.type || 'Unknown'} and Bangladesh agronomy for the farmer's district.
+- Use recent weather and sensor snapshot to slightly shift optimal ranges if justified (e.g., raise optimal moisture in heat).
+- Respond with VALID JSON only. No commentary.
+
+Context:
+Farmer: ${farmer?.name || 'Unknown'} (${farmer?.location || 'Unknown'})
+Crop: ${crop?.type || 'Unknown'}
+Weather: ${JSON.stringify(weather || {}, null, 2)}
+Sensors: ${JSON.stringify(sensors || {}, null, 2)}
+`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4.1",
+        messages: [
+          { role: "system", content: "You return only valid JSON. Never include any explanation." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 600
+      });
+
+      const raw = response.choices?.[0]?.message?.content || '{}';
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        throw new Error('AI returned invalid JSON for optimal settings');
+      }
+
+      // Basic shape validation
+      const requiredKeys = ["moisture","ph","temperature","humidity","light","conductivity","n","p","k"];
+      for (const k of requiredKeys) {
+        if (!parsed[k] || typeof parsed[k].optimalMin === 'undefined' || typeof parsed[k].optimalMax === 'undefined') {
+          throw new Error(`Missing optimal range for ${k}`);
+        }
+      }
+
+      return {
+        success: true,
+        optimal: parsed,
+        usage: response.usage
+      };
+    } catch (error) {
+      console.error('Optimal analysis error:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Process image in chat using OpenAI Vision API
+   * @param {string} base64Image - Base64 encoded image
+   * @param {string} userMessage - User's message/question about the image
+   * @param {Array} conversationHistory - Previous conversation messages
+   * @returns {Promise<Object>} Image analysis results
+   */
+  async processImageInChat(base64Image, userMessage, conversationHistory = []) {
+    try {
+      // Format conversation history for OpenAI
+      const formattedHistory = conversationHistory.map(msg => ({
+        role: msg.isUser ? "user" : "assistant",
+        content: msg.content
+      }));
+      
+      // Prepare messages array with system message and conversation history
+      const messages = [
+        {
+          role: "system",
+          content: "You are AgriSense AI, a helpful agricultural assistant that provides personalized farming advice. Always respond in Bengali (Bangla) language as you are serving farmers in Bangladesh."
+        },
+        ...formattedHistory,
+        {
+          role: "user",
+          content: [
+            { type: "text", text: userMessage },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: messages,
+        max_tokens: 1000
+      });
+
+      return {
+        success: true,
+        data: response.choices[0].message.content
+      };
+    } catch (error) {
+      console.error("OpenAI image processing error:", error);
+      throw new Error(`Failed to process image: ${error.message}`);
+    }
+  }
 };

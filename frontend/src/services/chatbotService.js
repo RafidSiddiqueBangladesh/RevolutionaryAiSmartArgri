@@ -48,8 +48,8 @@ export const getWelcomeMessage = () => {
 };
 
 /**
- * Get suggested questions for the farmer
- * @returns {Array<string>} Array of suggested questions
+ * Get suggested questions for the chatbot
+ * @returns {Array<string>} List of suggested questions
  */
 export const getSuggestedQuestions = () => {
   return [
@@ -64,8 +64,41 @@ export const getSuggestedQuestions = () => {
   ];
 };
 
-export default {
-  sendChatMessage,
-  getWelcomeMessage,
-  getSuggestedQuestions
+/**
+ * Send image to chatbot with user message
+ * @param {File} imageFile - The image file to upload
+ * @param {string} message - User's message about the image
+ * @param {Array} conversationHistory - Previous conversation messages
+ * @returns {Promise<Object>} Chatbot response with image analysis
+ */
+export const sendImageMessage = async (imageFile, message = '', conversationHistory = []) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('message', message);
+    
+    // Add conversation history to the request
+    if (conversationHistory.length > 0) {
+      formData.append('conversationHistory', JSON.stringify(conversationHistory));
+    }
+    
+    const response = await api.post('/ai/process-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    return {
+      success: true,
+      data: response.data.data,
+      isImageResponse: true
+    };
+  } catch (error) {
+    console.error('Image upload error:', error);
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to process image',
+      fallbackResponse: "আমি এই ছবিটি প্রক্রিয়া করতে অক্ষম। অনুগ্রহ করে আবার চেষ্টা করুন।"
+    };
+  }
 };

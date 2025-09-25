@@ -14,6 +14,11 @@ export const adminService = {
     const url = `/admin/farmers${query.toString() ? `?${query.toString()}` : ''}`;
     const { data } = await api.get(url);
     return data;
+  },
+
+  analyzeOptimalForAll: async () => {
+    const { data } = await api.post('/admin/analyze-optimal');
+    return data;
   }
 };
 

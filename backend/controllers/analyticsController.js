@@ -538,6 +538,26 @@ exports.getChatbotFarmData = async (req, res) => {
       console.log('Chatbot: Final weather info:', weatherInfo);
     }
     
+    // Fetch crop price for user's crop (if available) and all crop prices
+    let allPricesList = [];
+    try {
+      // All crop prices
+      const { data: allPriceRows } = await supabase
+        .from('crop_prices')
+        .select('crop_name, unit, price, updated_at')
+        .order('crop_name', { ascending: true });
+      if (Array.isArray(allPriceRows)) {
+        allPricesList = allPriceRows.map(p => ({
+          cropName: p.crop_name,
+          unit: p.unit,
+          price: p.price,
+          updatedAt: p.updated_at
+        }));
+      }
+    } catch (e) {
+      console.warn('Chatbot: Failed to fetch crop prices:', e.message);
+    }
+
     // Prepare comprehensive farm context for chatbot
     const farmContext = {
       farmer: {
@@ -553,6 +573,7 @@ exports.getChatbotFarmData = async (req, res) => {
         type: farmer.crop_name || 'Unknown',
         plantingDate: 'Unknown'
       },
+      prices: allPricesList,
       weather: {
         temperature: weatherInfo.temperature,
         humidity: weatherInfo.humidity,

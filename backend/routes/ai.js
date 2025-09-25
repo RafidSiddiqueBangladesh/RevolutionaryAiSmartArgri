@@ -1,73 +1,85 @@
+// Import required modules
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const imageUpload = require('../middleware/imageUpload');
+const openaiService = require('../services/openaiService');
 
 // Simple in-memory store for last callback payloads (dev utility)
 let lastAnalysisCallback = null;
 let lastChatbotCallback = null;
 
-// Get current AI provider and callback status
-router.get('/provider', (req, res) => {
-  res.json({
-    provider: (process.env.AI_PROVIDER || 'openai').toLowerCase(),
-    callbacks: {
-      analysisCallbackConfigured: !!process.env.SMYTHOS_ANALYSIS_CALLBACK_URL,
-      chatbotCallbackConfigured: !!process.env.SMYTHOS_CHATBOT_CALLBACK_URL
-    }
-  });
+// AI provider status endpoint
+router.get('/status', (req, res) => {
+  res.json({ status: 'operational' });
 });
 
-// Smythos analysis callback endpoint (external system posts processed analysis here)
-router.post('/callback/analysis', async (req, res) => {
+// Callback endpoint for AI analysis
+router.post('/callback', (req, res) => {
+  // Handle callback from external AI system (Smythos)
+  const payload = req.body;
+  
+  // Extract user ID for pipeline continuation
+  const userId = payload.metadata?.userId;
+  
+  res.status(200).json({ received: true });
+});
+
+// Receipt scanning endpoint
+router.post('/scan-receipt', imageUpload.single('receipt'), async (req, res) => {
   try {
-    lastAnalysisCallback = {
-      receivedAt: new Date().toISOString(),
-      body: req.body
-    };
-    // Accept either flat or nested Smythos format
-    const raw = req.body || {};
-    const output = raw?.result?.Output || raw;
-    const meta = raw?.meta || {};
-    if (!output || typeof output.actionRequired === 'undefined' || !('analysis' in output)) {
-      return res.status(400).json({ error: 'Invalid analysis callback payload' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Extract identifiers for pipeline continuation
-    const userId = output.userId || raw.userId || meta.userId || req.query.userId || req.headers['x-user-id'] || null;
+    // Read the uploaded file
+    const imagePath = req.file.path;
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
 
-    // Optionally, you could enqueue work here using userId
-    return res.json({ success: true });
+    // Analyze the receipt using OpenAI
+    const analysis = await openaiService.analyzeReceipt(base64Image);
+
+    // Delete the temporary file
+    fs.unlinkSync(imagePath);
+
+    res.json({ success: true, data: analysis.data });
   } catch (error) {
-    console.error('Analysis callback error:', error);
-    return res.status(500).json({ error: 'Failed to process analysis callback' });
+    console.error('Receipt scanning error:', error);
+    res.status(500).json({ error: 'Failed to scan receipt' });
   }
 });
 
-// Smythos chatbot callback endpoint (external system posts chatbot text response here)
-router.post('/callback/chatbot', async (req, res) => {
+// Process image in chat endpoint
+router.post('/process-image', imageUpload.single('image'), async (req, res) => {
   try {
-    lastChatbotCallback = {
-      receivedAt: new Date().toISOString(),
-      body: req.body
-    };
-    const raw = req.body || {};
-    const responseText = raw?.result?.Output?.response ?? raw?.response;
-    if (typeof responseText !== 'string') {
-      return res.status(400).json({ error: 'Invalid chatbot callback payload' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
     }
-    return res.json({ success: true });
-  } catch (error) {
-    console.error('Chatbot callback error:', error);
-    return res.status(500).json({ error: 'Failed to process chatbot callback' });
-  }
-});
 
-// Dev utility: fetch last received callback payloads (protected by env token if set)
-router.get('/callbacks/last', (req, res) => {
-  const token = req.headers['x-internal-token'];
-  if (process.env.INTERNAL_API_TOKEN && token !== process.env.INTERNAL_API_TOKEN) {
-    return res.status(403).json({ error: 'Forbidden' });
+    // Read the uploaded file
+    const imagePath = req.file.path;
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+    
+    // Get the user's message if provided
+    const userMessage = req.body.message || 'What can you tell me about this image?';
+    
+    // Get conversation history if provided
+    const conversationHistory = req.body.conversationHistory || [];
+
+    // Process the image using OpenAI with conversation history
+    const response = await openaiService.processImageInChat(base64Image, userMessage, conversationHistory);
+
+    // Delete the temporary file
+    fs.unlinkSync(imagePath);
+
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    console.error('Image processing error:', error);
+    res.status(500).json({ error: 'Failed to process image' });
   }
-  res.json({ lastAnalysisCallback, lastChatbotCallback });
 });
 
 module.exports = router;

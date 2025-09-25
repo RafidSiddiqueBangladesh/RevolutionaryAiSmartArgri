@@ -8,6 +8,7 @@ import Chatbot from '../Chatbot/Chatbot';
 import ChatbotButton from '../Chatbot/ChatbotButton';
 import AdminDashboard from './AdminDashboard';
 import AdminPrices from './AdminPrices';
+import SellPage from './Sell/SellPage';
 import FarmerPrices from './FarmerPrices';
 import { Sprout, LayoutDashboard, Cpu, BarChart3, User, Phone, BadgeCheck, Leaf, MapPin, Ruler, Menu, X } from 'lucide-react';
 const Dashboard = () => {
@@ -186,6 +187,13 @@ const Dashboard = () => {
                 <BarChart3 className="tab-icon" aria-hidden="true" />
                 Prices
               </button>
+              <button
+                className={`tab-btn ${activeTab === 'sell' ? 'active' : ''}`}
+                onClick={() => setActiveTab('sell')}
+              >
+                <BarChart3 className="tab-icon" aria-hidden="true" />
+                Sell
+              </button>
             </div>
           )}
 
@@ -274,6 +282,12 @@ const Dashboard = () => {
           {activeTab === 'prices' && user?.role === 'farmer' && (
             <div className="content-sections">
               <FarmerPrices />
+            </div>
+          )}
+
+          {activeTab === 'sell' && user?.role === 'farmer' && (
+            <div className="content-sections">
+              <SellPage />
             </div>
           )}
 

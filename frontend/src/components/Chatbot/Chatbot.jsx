@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage, getWelcomeMessage, getSuggestedQuestions } from '../../services/chatbotService';
+import { sendChatMessage, getWelcomeMessage, getSuggestedQuestions, sendImageMessage } from '../../services/chatbotService';
 import './Chatbot.css';
-import { Sprout, X, Send, Loader2 } from 'lucide-react';
+import { Sprout, X, Send, Loader2, Image, FileUp } from 'lucide-react';
 
 const Chatbot = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -140,6 +142,83 @@ const Chatbot = ({ isOpen, onClose }) => {
     }, 100);
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'bot',
+        content: 'দুঃখিত, শুধুমাত্র ছবি আপলোড করুন।',
+        timestamp: new Date(),
+        isError: true
+      }]);
+      return;
+    }
+
+    // Add user message with image only
+    setMessages(prev => [...prev, {
+      id: Date.now(),
+      type: 'user',
+      content: '',
+      timestamp: new Date(),
+      hasImage: true,
+      imageUrl: URL.createObjectURL(file)
+    }]);
+
+    setIsUploading(true);
+    setIsTyping(true);
+
+    try {
+      // Prepare conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        isUser: msg.type === 'user',
+        content: msg.content
+      }));
+      
+      // Send image to backend with conversation history
+      const response = await sendImageMessage(file, conversationHistory);
+
+      if (response.success) {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'bot',
+          content: response.data,
+          timestamp: new Date()
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'bot',
+          content: response.fallbackResponse || 'দুঃখিত, ছবি প্রক্রিয়া করতে সমস্যা হয়েছে।',
+          timestamp: new Date(),
+          isError: true
+        }]);
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'bot',
+        content: 'দুঃখিত, ছবি প্রক্রিয়া করতে সমস্যা হয়েছে।',
+        timestamp: new Date(),
+        isError: true
+      }]);
+    } finally {
+      setIsUploading(false);
+      setIsTyping(false);
+    }
+
+    // Clear the file input
+    e.target.value = null;
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -177,6 +256,11 @@ const Chatbot = ({ isOpen, onClose }) => {
             >
               <div className="message-content">
                 {message.content}
+                {message.hasImage && message.imageUrl && (
+                  <div className="message-image-preview">
+                    <img src={message.imageUrl} alt="Uploaded" />
+                  </div>
+                )}
               </div>
               <div className="message-time">
                 {formatTime(message.timestamp)}
@@ -229,12 +313,27 @@ const Chatbot = ({ isOpen, onClose }) => {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="আপনার খামার, মাটি, আবহাওয়া সম্পর্কে জিজ্ঞাসা করুন..."
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
               maxLength={500}
             />
             <button
+              onClick={triggerFileInput}
+              disabled={isLoading || isUploading}
+              className="upload-btn"
+              title="Upload receipt image"
+            >
+              <Image size={18} />
+            </button>
+            <input 
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+            <button
               onClick={handleSendMessage}
-              disabled={!inputMessage.trim() || isLoading}
+              disabled={!inputMessage.trim() || isLoading || isUploading}
               className="send-btn"
             >
               {isLoading ? (
